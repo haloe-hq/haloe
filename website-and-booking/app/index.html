@@ -1179,7 +1179,7 @@ function viewSettings() {
       <div class="srow"><div class="sx"><div class="stt">Show test data</div><div class="sm2">${S.showTest ? 'Showing rehearsal clients and bookings' : 'Rehearsal clients stay hidden'}</div></div><button class="tg" type="button" id="testBtn2" role="switch" aria-checked="${S.showTest}" aria-label="Show test data"><span class="trk"></span></button></div>
       <div class="srow"><div class="sx"><div class="stt">Two-step sign-in</div><div class="sm2">Coming soon</div></div><button class="soon" type="button" disabled>Set up</button></div>
     </section>
-    <section class="tile foot"><div class="f1">haloe practitioner app</div><div class="f2">Client details stay in your account. Nothing is saved on this phone.</div></section></div>`);
+    <section class="tile foot"><div class="f1">haloe practitioner app</div><div class="f2">Client details stay in your account. Nothing is saved on this phone.</div><div class="f2" style="margin-top:10px"><span class="powered" style="display:inline-flex;align-items:center;gap:6px;margin-top:0"><img src="/images/tigerflow-mark.png" alt="" width="17" height="14" style="height:14px;width:auto">Powered by TigerFlow AI</span></div></section></div>`);
   document.querySelectorAll('[data-th]').forEach((b) => { b.onclick = () => { setTheme(b.dataset.th === 'system' ? null : b.dataset.th); render(); }; });
   document.getElementById('signOutBtn').onclick = signOut;
   document.getElementById('testBtn2').onclick = () => setShowTest(!S.showTest);
@@ -1412,8 +1412,8 @@ const sendCode = (email) => authRun(() => sb.auth.signInWithOtp({ email, options
 const sendMsg = (r) => (r.kind === 'offline' ? OFFLINE_MSG : r.kind === 'rate' ? MSG_RATE : SEND_FAILED_MSG);   // any other failure sending a code: the calm "didn't send" line
 
 const arrivalFoot = (kind) => kind === 'help'
-  ? `<footer class="arr-foot"><span>Need a hand? <a href="https://wa.me/${HALIMA_WA}" target="_blank" rel="noopener">Message Halima</a></span></footer>`
-  : `<footer class="arr-foot"><span>Tuesdays at Milton Hall, Deansgate</span><span>New to haloe? <a href="/book">Book a session</a></span></footer>`;
+  ? `<footer class="arr-foot"><span>Need a hand? <a href="https://wa.me/${HALIMA_WA}" target="_blank" rel="noopener">Message Halima</a></span><span style="margin-top:10px"><span class="powered" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)"><img src="/images/tigerflow-mark.png" alt="" width="17" height="14" style="height:14px;width:auto">Powered by TigerFlow AI</span></span></footer>`
+  : `<footer class="arr-foot"><span>Tuesdays at Milton Hall, Deansgate</span><span>New to haloe? <a href="/book">Book a session</a></span><span style="margin-top:10px"><span class="powered" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)"><img src="/images/tigerflow-mark.png" alt="" width="17" height="14" style="height:14px;width:auto">Powered by TigerFlow AI</span></span></footer>`;
 
 function viewLogin() {
   clearInterval(S.loginTimer);
@@ -2731,7 +2731,7 @@ function viewClientSettings() {
       ${S.preview ? `<p style="margin:10px 0 14px">Previewing ${esc(firstName(S.preview.name))}'s view.</p><button class="btn ghost block" id="signOutBtn">Back to admin</button>` : `<p style="margin:10px 0 14px">${esc((S.session && S.session.user && S.session.user.email) || ADMIN_EMAIL)}</p>
       <button class="btn ghost block" id="signOutBtn">Sign out</button>`}</div>
     <div class="card"><div class="section-label">About</div>
-      <p class="muted" style="margin:10px 0 0">${clientUI() ? 'haloe · your sessions and progress are private to you and are not stored on this device.' : 'haloe practitioner app · client details never leave your account and are not stored on this device.'}</p></div>`);
+      <p class="muted" style="margin:10px 0 0">${clientUI() ? 'haloe · your sessions and progress are private to you and are not stored on this device.' : 'haloe practitioner app · client details never leave your account and are not stored on this device.'}</p><p class="muted" style="margin:12px 0 0"><span class="powered" style="display:inline-flex;align-items:center;gap:6px;margin-top:0"><img src="/images/tigerflow-mark.png" alt="" width="17" height="14" style="height:14px;width:auto">Powered by TigerFlow AI</span></p></div>`);
   document.querySelectorAll('[data-th]').forEach((b) => { b.onclick = () => { setTheme(b.dataset.th === 'system' ? null : b.dataset.th); render(); }; });
   document.getElementById('signOutBtn').onclick = S.preview ? exitPreview : signOut;
   const tb2 = document.getElementById('testBtn2'); if (tb2) tb2.onclick = () => setShowTest(!S.showTest);
