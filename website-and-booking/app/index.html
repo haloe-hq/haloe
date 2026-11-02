@@ -1642,7 +1642,7 @@ function viewNoMatch() {
 }
 
 function tabbarHTML() {
-  const items = clientUI() ? [['home', 'Home'], ['aftercare', 'Aftercare'], ['notes', 'Notes'], ['progress', 'Progress'], ['book', 'Book']] : [['today', 'Today'], ['inbox', 'Inbox'], ['clients', 'Clients'], ['pipeline', 'Pipeline'], ['codes', 'Codes'], ['stats', 'Stats']];
+  const items = clientUI() ? [['home', 'Home'], ['aftercare', 'Aftercare'], ['notes', 'Notes'], ['progress', 'Progress'], ['book', 'Book']] : [['today', 'Today'], ['clients', 'Clients'], ['pipeline', 'Pipeline'], ['codes', 'Codes'], ['stats', 'Stats']];
   return `<div class="navdock${clientUI() ? '' : ' crm'}"><div class="tabbar" role="navigation" aria-label="Main">${items.map(([k, l]) =>
     `<button data-go="${k}" ${S.view === k || (k === 'clients' && S.view === 'brief') ? 'aria-current="page"' : ''}>${ICON[k]}<span>${l}</span>${k === 'inbox' && unreadCount() ? '<i class="nbadge">' + unreadCount() + '</i>' : ''}</button>`).join('')}</div>${clientUI() ? '' : '<a class="navplus" href="/book?location=clinic" target="_blank" rel="noopener" aria-label="Book a session">+</a>'}</div>`;
 }
