@@ -587,6 +587,7 @@
   .cr-copy { background: var(--th-gold); color: #1C1812; }
   .cr-share { background: var(--th-dark); color: #fff; }
   .cr-name { min-height: 44px; margin-top: var(--s1); padding: 0; border: 0; background: none; color: var(--th-gold-text); font: inherit; font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .cd-editname { min-height: 36px; margin-top: 0; font-size: 13px; }
   .cr-nameform { display: flex; gap: var(--s2); margin-top: var(--s3); }
   .cr-nameform .in { flex: 1; min-width: 0; height: 48px; margin: 0; }
   .cr-nameform .cr-copy { flex: 0 0 96px; }
@@ -2604,7 +2605,7 @@ function viewCodes() {
     const rev = S.data.bookings.filter((b) => confirmed(b) && b.discount_code === c.code).reduce((s, b) => s + (b.amount_pence || 0), 0);
     const exp = c.valid_until ? 'Expires ' + fmtDate(ldn(new Date(c.valid_until * 1000))) : 'No expiry';
     const meta = [({ gift: 'Gift', promo: 'Promo', audience: 'Audience', competition: 'Competition', reward: 'Reward' }[c.type] || c.type), c.percent_off + '% off', col && col.name, exp, rev ? money(rev) : null].filter(Boolean).join(' · ');
-    return `<div class="cd-row"><div class="ct"><div class="cc">${esc(c.code)}</div><div class="cm">${esc(meta)}</div></div><span class="cu">${c.max_uses_total == null ? u + ' ' + (u === 1 ? 'use' : 'uses') : u + ' / ' + c.max_uses_total}</span>
+    return `<div class="cd-row"><div class="ct"><div class="cc">${esc(c.code)}</div><div class="cm">${esc(meta)}</div><div class="cd-namewrap" data-namewrap="${c.id}"><button class="cr-name cd-editname" type="button" data-editname="${c.id}">${col ? 'Edit name' : 'Add name'}</button></div></div><span class="cu">${c.max_uses_total == null ? u + ' ' + (u === 1 ? 'use' : 'uses') : u + ' / ' + c.max_uses_total}</span>
       <button class="switch-wrap" data-active="${c.id}" aria-label="${esc(c.code)} active"><span class="switch" role="switch" aria-checked="${c.active}"></span></button></div>`;
   }).join('');
   shell(`<div class="tile-home codes"><div class="th-titlerow"><h1>Codes</h1><span>Tap one to make a code</span></div>
@@ -2617,6 +2618,7 @@ function viewCodes() {
       try { await api.setActive(c.id, !c.active); c.active = !c.active; render(); } catch (e) { toastMsg(friendly(e, 'save')); }
     };
   });
+  document.querySelectorAll('[data-editname]').forEach((b) => { b.onclick = () => editCodeName(Number(b.dataset.editname)); });
   document.getElementById('inactiveBtn').onclick = () => { S.showInactive = !S.showInactive; render(); };
   document.querySelectorAll('[data-quick]').forEach((b) => { b.onclick = () => quickTap(b.dataset.quick); });
   const copy = document.getElementById('crCopy'); if (copy) copy.onclick = async () => toastMsg((await copyText(S.codeReady.code)) ? 'Copied' : 'Couldn’t copy');
@@ -2645,6 +2647,24 @@ async function quickTap(kind) {
     render(); toastMsg('Code ready');
   } catch (err) { S.codeReady = null; S.quickSel = null; render(); toastMsg(friendly(err, 'save')); }
   release();
+}
+/** Edit (or clear) the name on any code in the list. Empty box = remove the name. */
+function editCodeName(id) {
+  const c = S.data.codes.find((x) => x.id === id), wrap = document.querySelector('[data-namewrap="' + id + '"]'); if (!c || !wrap) return;
+  const col = S.data.collabs.find((x) => x.id === c.collaborator_id);
+  wrap.innerHTML = '<div class="cr-nameform"><input class="in" id="cdNameIn" value="' + esc(col ? col.name : '') + '" placeholder="Name, e.g. Jane" autocomplete="off" aria-label="Name for this code"><button class="cr-copy" type="button" id="cdNameSave">Save</button></div>';
+  const inp = document.getElementById('cdNameIn'); inp.focus(); inp.select();
+  const save = async () => {
+    const display = inp.value.trim().replace(/\s+/g, ' ');
+    try {
+      const collabId = display ? await api.findOrCreateCollab(display, 'Collaborator free treatment: ' + display) : null;
+      await api.setCodeCollab(id, collabId);
+      c.collaborator_id = collabId;
+      await refreshData(); toastMsg(display ? 'Name saved' : 'Name removed');
+    } catch (e) { toastMsg(friendly(e, 'save')); }
+  };
+  document.getElementById('cdNameSave').onclick = save;
+  inp.onkeydown = (e) => { if (e.key === 'Enter') save(); };
 }
 /** Optional: label a just-made code with a name (uses the existing collaborators link). Never required. */
 function nameCode() {
