@@ -149,7 +149,7 @@ eq('empty cart rejected', resolveCart([]).error, 'no_treatments');
 eq('package cannot be combined', resolveCart([{ name: 'Cycle Comfort', category: 'packages' }, { name: 'Face Massage', category: 'massage' }]).error, 'package_not_combinable');
 ok('a package alone is fine', resolveCart([{ name: 'Cycle Comfort', category: 'packages' }]).ok);
 
-console.log('\nMulti-treatment: HALOE20 on the combined total');
+console.log('\nMulti-treatment: a code percentage on the combined total');
 const d = applyDiscount(8000, 20);
 eq('20% off £80 = £16 off, £64 to pay', [d.discountPence, d.finalPence], [1600, 6400]);
 

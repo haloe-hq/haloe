@@ -46,8 +46,8 @@ export const SERVICES = {
     { name: 'Energy session', price: 90, min: 60 },
   ],
   coaching: [
-    { name: 'Life Coaching Session', price: 75, min: 60 },
-    { name: 'Six-Session Coaching Package', price: 400, min: 60 },
+    { name: 'Life Coaching Session', price: 50, min: 60 },
+    { name: 'Six-Session Coaching Package', price: 250, min: 60 },
   ],
   packages: [
     { name: 'Pain & Mobility', price: 340, min: 90 },
@@ -61,14 +61,17 @@ export const SERVICES = {
   ],
 };
 
-// Same as services-data.js — ended Sep 2026, kept at 0 in step with that
-// file. HALOE20 (functions/_discounts.js) is the only discount left,
-// applied on top of this full price server-side in create-checkout.js.
-const PROMO_DISCOUNT = 0.2; // keep equal to services-data.js and index.html HB_PROMO_DISCOUNT
+// The site-wide introductory offer (percent + end date) lives in ../offer-config.js, the same file the pages load,
+// so the browser and this server can never disagree. A discount code does not stack with it (see priceWithCode()
+// in _discounts.js).
+import '../offer-config.js';
+export const siteOfferPercent = (now) => globalThis.siteOfferPercent(now);
+
+export function listPrice(svc) { return Math.round(svc.price * 100) / 100; }
 
 export function netPrice(svc) {
   // Round at the pence level (see services-data.js for the rationale).
-  return Math.round(svc.price * (1 - PROMO_DISCOUNT) * 100) / 100;
+  return Math.round(svc.price * (1 - siteOfferPercent() / 100) * 100) / 100;
 }
 
 // Looks a treatment up by its exact display name, scoped to `category` when
@@ -125,6 +128,7 @@ export function resolveCart(items) {
     out.push({
       name: svc.name,
       category: it.category,
+      listPricePence: Math.round(listPrice(svc) * 100),
       pricePence: Math.round(netPrice(svc) * 100),
       min: Number(svc.min) > 0 ? Number(svc.min) : 60,
     });
@@ -135,6 +139,7 @@ export function resolveCart(items) {
     ok: true,
     items: out,
     totalPence: out.reduce((n, x) => n + x.pricePence, 0),
+    listTotalPence: out.reduce((n, x) => n + x.listPricePence, 0),
     totalMin: out.reduce((n, x) => n + x.min, 0),
   };
 }

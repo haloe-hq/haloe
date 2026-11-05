@@ -1,7 +1,7 @@
 // Audience codes (YASMZEE25, DB25, POD25) must be usable by many different people, but once per email.
 // Checks the redemption row reserveDiscountCode() writes for each code type:   node website-and-booking/tools/test-audience-code.mjs
 //  * audience: enforce_limits false (the one-use-per-code index ignores it), enforce_customer true (one use per email stays in the DB)
-//  * promo (HALOE20/NOV20): both false — reusable without limit
+//  * promo (any reusable promotional code): both false — reusable without limit
 //  * gift / competition / reward: both true — strictly single use
 //  * a database unique violation (23505, the same email twice) is reported as null = "code taken"
 import { reserveDiscountCode } from '../functions/_discounts.js';

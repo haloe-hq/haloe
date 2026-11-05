@@ -1735,11 +1735,9 @@ const HB_SERVICES = {
     {name:'Energy session',time:'1 hour',price:90},
   ],
 };
-/* Promotional discount — ended Sep 2026, kept in step with PROMO_DISCOUNT
-   (services-data.js) and functions/_services.js, all now 0. hbNet() just
-   returns svc.price; HALOE20 is the only discount left. */
-const HB_PROMO_DISCOUNT = 0.2; // keep equal to services-data.js PROMO_DISCOUNT
-function hbNet(svc){ return Math.round(svc.price * (1 - HB_PROMO_DISCOUNT)); }
+/* Site-wide introductory offer: percent and end date come from offer-config.js (loaded before services-data.js),
+   the single source the pages and the Functions share. */
+function hbNet(svc){ return Math.round(svc.price * (1 - siteOfferPercent() / 100)); }
 
 /* ---- Weekly Clinic Day config ----
    Must stay in step with the same constants in book.html and functions/_clinic.js. */
@@ -1795,7 +1793,7 @@ function hbRenderCards(){
   // Packages get a "Save N%" pill using the real, live discount rate — never
   // hard-code the percentage, so this can't drift from what's actually charged.
   const badge = hbState.cat === 'packages'
-    ? `<span class="hb-badge">Save ${Math.round(HB_PROMO_DISCOUNT*100)}%</span>` : '';
+    ? `<span class="hb-badge">Save ${siteOfferPercent()}%</span>` : '';
   g.innerHTML=HB_SERVICES[hbState.cat].map((s,i)=>`
     <div class="hb-card ${hbState.idx===i?'selected':''}" onclick="hbSelectSvc(${i})">
       ${badge}
@@ -2011,6 +2009,7 @@ hbInit();
   </div>
 </div>
 
+<script src="offer-config.js"></script>
 <script src="services-data.js"></script>
 <script>
 // ------------------------------------------------------------------

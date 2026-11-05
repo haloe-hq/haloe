@@ -2345,6 +2345,7 @@
 </div><!-- /book-main -->
 </div><!-- /book-shell -->
 
+<script src="offer-config.js"></script>
 <script src="services-data.js"></script>
 <script src="clinic-rules.js"></script>
 <script src="/care-copy.js"></script>
@@ -2662,7 +2663,7 @@ function applyDeepLink() {
     if (wantedLocation === 'virtual') state.category = 'coaching';
   }
 
-  // A discount code deep link (e.g. the hero offer box's book.html?code=HALOE20).
+  // A discount code deep link (e.g. the hero offer box's book.html?code=GUEST-XXXX).
   // Pre-fills the field now; applyDiscountCode() runs it for real once step 5
   // is reached and we have an email to validate it against.
   const wantedCode = params.get('code');
@@ -3714,6 +3715,7 @@ function discountErrorMessage(reason) {
     already_used: 'That code has already been used.',
     wrong_email: 'That code isn’t valid for your email.',
     not_first_time: 'That code is for first-time clients only.',
+    offer_better: 'Your 20% introductory price is already better than this code, so there is nothing to add.',
   }[reason] || 'That code isn’t valid.';
 }
 

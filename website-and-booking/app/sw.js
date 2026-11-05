@@ -2,7 +2,7 @@
 // icons, the Supabase client library). It never touches Supabase or any
 // cross-origin data request, so client health data is never written to disk
 // by the cache. Bump CACHE when the shell changes.
-const CACHE = 'haloe-app-v57';
+const CACHE = 'haloe-app-v58';
 const SHELL = [
   '/app/',
   '/app/manifest.webmanifest',

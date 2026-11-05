@@ -568,7 +568,7 @@
   :root { --th-soft: rgba(255, 255, 255, .7); }
   :root[data-theme="dark"] { --th-soft: rgba(255, 255, 255, .07); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --th-soft: rgba(255, 255, 255, .07); } }
-  .qt-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s3); margin: 0 0 var(--s3); }
+  .qt-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s3); margin: 0 0 var(--s3); }
   .qt { min-width: 0; height: 116px; padding: var(--s3); border: 2px solid transparent; border-radius: var(--th-radius); display: flex; flex-direction: column; justify-content: space-between; text-align: left; background: var(--th-tile); color: var(--th-ink); box-shadow: var(--th-shadow); font: inherit; cursor: pointer; overflow: hidden; }
   .qt .th-k { font-size: 14px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; line-height: 1.3; }
   .qt .big { display: block; font-size: 28px; line-height: 1; font-weight: 700; letter-spacing: -0.02em; }
@@ -2600,23 +2600,13 @@ async function copyText(text) {
 }
 const usesOf = (c) => S.data.redemptions.filter((r) => r.code_id === c.id && (r.status === 'reserved' || r.status === 'confirmed')).length;
 const codeDesc = (c) => (c.percent_off === 100 ? 'Free session' : c.percent_off === 50 ? 'Half price' : c.percent_off + '% off') + ' · ' + (c.max_uses_total == null ? 'unlimited use' : c.max_uses_total + (c.max_uses_total === 1 ? ' use' : ' uses'));
-/** HALOE20's real state: days to its real expiry, its real use count — or clearly "off" / "expired". */
-function haloe20State() {
-  const c = S.data.codes.find((x) => x.code === 'HALOE20'); if (!c) return { ok: false, line: 'Not found', code: null };
-  const now = Date.now() / 1000;
-  if (!c.active) return { ok: false, line: 'Switched off', code: c };
-  if (c.valid_until && c.valid_until < now) return { ok: false, line: 'Expired', code: c };
-  const days = c.valid_until ? Math.max(0, daysBetween(todayISO(), ldn(new Date(c.valid_until * 1000)))) : null;
-  const u = usesOf(c);
-  return { ok: true, line: (days == null ? 'No expiry' : days + (days === 1 ? ' day left' : ' days left')) + ' · ' + u + ' used', code: c };
-}
 function viewCodes() {
   const collabById = Object.fromEntries(S.data.collabs.map((c) => [c.id, c]));
   const rows = S.data.codes.filter((c) => S.showInactive || (c.active && !isTestCode(c, collabById))).sort((a, b) => b.id - a.id);
   const live = S.data.codes.filter((c) => c.active && (S.showTest || !isTestCode(c, collabById)));
   const usedAll = S.data.redemptions.filter((r) => r.status === 'reserved' || r.status === 'confirmed').length;
   const revAll = S.data.bookings.filter((b) => confirmed(b) && b.discount_code).reduce((s, b) => s + (b.amount_pence || 0), 0);
-  const h = haloe20State(), sel = S.quickSel, busy = S.quickBusy ? 'disabled' : '';
+  const sel = S.quickSel, busy = S.quickBusy ? 'disabled' : '';
   const qt = (k, cls, lab, big, sub) => `<button class="qt ${cls}" type="button" data-quick="${k}" aria-pressed="${sel === k}" ${busy}><span class="th-k">${lab}</span><span class="big">${big}</span><span class="sub">${sub}</span></button>`;
   const ready = S.codeReady ? (() => { const r = S.codeReady, c = S.data.codes.find((x) => x.code === r.code) || {}; const col = collabById[c.collaborator_id];
     return `<section class="tile cr-ready" id="codeReady"><div class="cr-k">Code ready</div><div class="cr-code" id="crCode">${esc(r.code)}</div><div class="cr-desc">${esc(r.desc)}${col ? ' · ' + esc(col.name) : ''}</div>
@@ -2631,7 +2621,7 @@ function viewCodes() {
       <button class="switch-wrap" data-active="${c.id}" aria-label="${esc(c.code)} active"><span class="switch" role="switch" aria-checked="${c.active}"></span></button></div>`;
   }).join('');
   shell(`<div class="tile-home codes"><div class="th-titlerow"><h1>Codes</h1><span>Tap one to make a code</span></div>
-    <div class="qt-row">${qt('free', 'qt-gold', 'Free session', 'Free', 'single use')}${qt('half', 'qt-dark', 'Half price', '50%', 'single use')}${qt('haloe', 'qt-white' + (h.ok ? '' : ' off'), 'HALOE20', '20%', esc(h.line))}</div>${ready}
+    <div class="qt-row">${qt('free', 'qt-gold', 'Free session', 'Free', 'single use')}${qt('half', 'qt-dark', 'Half price', '50%', 'single use')}</div>${ready}
     <div class="st-row"><div class="st"><span class="th-k">Active</span><b>${live.length}</b></div><div class="st"><span class="th-k">Used</span><b>${usedAll}</b></div><div class="st"><span class="th-k">Revenue</span><b>${money(revAll)}</b></div></div>
     <section class="tile cd-list"><div class="th-head"><h2 class="th-title">All codes</h2><button class="cd-inactive" type="button" id="inactiveBtn" aria-pressed="${!!S.showInactive}">${S.showInactive ? 'Hide inactive' : 'Show inactive'}</button></div>${rowsHTML || stateHTML('No codes to show', S.showInactive ? 'Tap a tile above to make one.' : 'Tap a tile above to make one, or show inactive codes.')}</section></div>`);
   document.querySelectorAll('[data-active]').forEach((b) => {
@@ -2648,17 +2638,11 @@ function viewCodes() {
   if (share) share.onclick = async () => { const code = S.codeReady.code; if (navigator.share) { try { await navigator.share({ title: 'haloe code', text: code }); } catch (e) { /* cancelled */ } } else toastMsg((await copyText(code)) ? 'Copied' : 'Couldn’t copy'); };
   const nameBtn = document.getElementById('crNameBtn'); if (nameBtn) nameBtn.onclick = () => nameCode();
 }
-/** One tap = one code. Free and Half price create a single-use code; HALOE20 already exists, so it only copies. */
+/** One tap = one code. Free and Half price each create a single-use code. */
 async function quickTap(kind) {
   if (S.quickBusy) return;
   S.quickBusy = true; S.quickSel = kind;
   const release = () => { setTimeout(() => { S.quickBusy = false; document.querySelectorAll('[data-quick]').forEach((b) => { b.disabled = false; }); }, 1000); };      // a second tap within a second does nothing
-  if (kind === 'haloe') {
-    const h = haloe20State();
-    if (!h.ok) { S.codeReady = null; render(); toastMsg('HALOE20 is ' + h.line.toLowerCase()); release(); return; }
-    S.codeReady = { code: 'HALOE20', desc: '20% off · ' + h.line, id: null };
-    const ok = await copyText('HALOE20'); render(); toastMsg(ok ? 'Copied' : 'Couldn’t copy'); release(); return;
-  }
   render();
   try {
     let code = '', tries = 0;

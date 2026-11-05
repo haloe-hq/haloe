@@ -15,7 +15,7 @@ const { BODY_TEXT, FONT } = await import('../functions/_email.js');
 
 const mails = [];
 globalThis.fetch = async (u, o = {}) => { if (String(u).includes('resend.com')) mails.push(JSON.parse(o.body)); return { ok: true, status: 200, json: async () => ({}), text: async () => '{}' }; };
-const base = { name: 'Test Client', phone: '07000000000', email: 'client@example.invalid', treatment: 'Face Massage', treatments: ['Face Massage'], durationLabel: '1 hour', date: 'Tue 13 Oct', time: '9:00am', amount: '£32', paymentLabel: 'Paid in full', notes: '', originalAmountLabel: '£40', discountRowLabel: 'HALOE20 discount', discountLabel: '−£8', travelLabel: '', travelZone: '', travelPence: 0, slotConflict: false, bookingId: null };
+const base = { name: 'Test Client', phone: '07000000000', email: 'client@example.invalid', treatment: 'Face Massage', treatments: ['Face Massage'], durationLabel: '1 hour', date: 'Tue 13 Oct', time: '9:00am', amount: '£32', paymentLabel: 'Paid in full', notes: '', originalAmountLabel: '£40', discountRowLabel: 'GUEST-TEST discount', discountLabel: '−£8', travelLabel: '', travelZone: '', travelPence: 0, slotConflict: false, bookingId: null };
 await notifyBooking({ RESEND_API_KEY: 'k' }, { ...base, location: 'clinic', venue: 'Milton Hall, Deansgate', address: 'Milton Hall, 244 Deansgate, Manchester' });
 await notifyBooking({ RESEND_API_KEY: 'k' }, { ...base, location: 'mobile', venue: '', address: '1 Example Street', travelLabel: '£15', travelZone: 'A', travelPence: 1500 });
 const [clinicCustomer, clinicOwner, mobileCustomer, mobileOwner] = mails.map((m) => m.html);

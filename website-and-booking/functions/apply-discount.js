@@ -5,7 +5,7 @@
 // finding out at the Stripe redirect. This is a preview only — create-checkout.js
 // re-validates and recomputes the amount itself at payment time; this endpoint's
 // response is never trusted for the actual charge.
-import { validateDiscountCode, applyDiscount } from './_discounts.js';
+import { validateDiscountCode, priceWithCode } from './_discounts.js';
 import { resolveCart } from './_services.js';
 
 export async function onRequestPost(context) {
@@ -43,8 +43,13 @@ export async function onRequestPost(context) {
       });
     }
 
-    const originalAmountPence = cart.totalPence; // the COMBINED treatment price
-    const { discountPence, finalPence } = applyDiscount(originalAmountPence, result.percent);
+    const originalAmountPence = cart.totalPence; // the COMBINED treatment price, site offer already taken off
+    // Never stacks with the site-wide offer: the larger single discount wins (see priceWithCode()).
+    const priced = priceWithCode(cart, result.percent, !!result.waivesTravel, new Date());
+    if (!priced.usesCode) {
+      return new Response(JSON.stringify({ ok: false, error: 'offer_better' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    const discountPence = priced.discountPence, finalPence = priced.finalPence;
 
     return new Response(JSON.stringify({
       ok: true,

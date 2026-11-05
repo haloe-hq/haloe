@@ -24,6 +24,7 @@
 // an overlap check.
 
 import { sbRequest } from './_supabase.js';
+import '../offer-config.js'; // defines globalThis.siteOfferPercent (used by priceWithCode)
 
 // How long a reservation is held before it's treated as abandoned. Matches
 // STRIPE_SESSION_SECONDS (_bookings.js) — a discount code held for the
@@ -157,6 +158,24 @@ export function applyDiscount(amountPence, percent) {
   return { discountPence, finalPence: amountPence - discountPence };
 }
 
+// Never stacks a code with the site-wide introductory offer (offer-config.js): the customer gets whichever
+// single discount is larger. `cart` is a resolveCart() result — listTotalPence is the undiscounted price,
+// totalPence is the price with the site offer already taken off. Returns
+//   { usesCode, finalPence, discountPence }   discountPence is measured against cart.totalPence (what the
+//   booking page shows), so an applied code always reads as a saving on the displayed price.
+// A code that would not beat the offer (percent <= offer) is not used: usesCode is false, nothing is
+// reserved, and the customer keeps the site offer. Codes that waive travel are always usable.
+export function priceWithCode(cart, codePercent, waivesTravel, now) {
+  const sitePercent = globalThis.siteOfferPercent(now);
+  if (!(codePercent > sitePercent) && !waivesTravel) {
+    return { usesCode: false, finalPence: cart.totalPence, discountPence: 0 };
+  }
+  const percent = Math.max(codePercent, sitePercent);
+  const finalPence = cart.listTotalPence - Math.round(cart.listTotalPence * (percent / 100));
+  const best = Math.min(finalPence, cart.totalPence);
+  return { usesCode: true, finalPence: best, discountPence: cart.totalPence - best };
+}
+
 // Reserves a redemption right before Stripe Checkout is created (or
 // immediately, for a code that makes the booking free). The two partial
 // unique indexes in the schema make the INSERT itself the race guard: two
@@ -164,7 +183,7 @@ export function applyDiscount(amountPence, percent) {
 // checks, but only one INSERT here succeeds. The loser gets a Postgres
 // unique-violation (23505), reported back as null — same contract as
 // reserveSlot() reporting a taken slot.
-// `type` 'promo' (HALOE20/NOV20) is reusable without limit until it expires, so
+// `type` 'promo' (a reusable promotional code) is reusable without limit until it expires, so
 // it's written with enforce_limits = false and enforce_customer = false: the
 // DB's unique indexes ignore it entirely.
 // `type` 'audience' (YASMZEE25 etc.) has no total cap — many followers use it —

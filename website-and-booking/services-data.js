@@ -53,8 +53,8 @@ const SERVICES = {
   // length come from the brand document. The six-session package books its
   // FIRST session (sessionMin) like the cupping packages do.
   coaching: [
-    { name: 'Life Coaching Session', time: '1 hour', price: 75, desc: 'A calm one-to-one conversation to help you notice and shift unhelpful thoughts.' },
-    { name: 'Six-Session Coaching Package', time: '6 sessions of 1 hour', price: 400, sessionMin: 60, desc: 'Six one-hour sessions, booked one at a time with Halima, at the clinic or online.' },
+    { name: 'Life Coaching Session', time: '1 hour', price: 50, desc: 'A calm one-to-one conversation to help you notice and shift unhelpful thoughts.' },
+    { name: 'Six-Session Coaching Package', time: '6 sessions of 1 hour', price: 250, sessionMin: 60, desc: 'Six one-hour sessions, booked one at a time with Halima, at the clinic or online.' },
   ],
   packages: [
     { name: 'Pain & Mobility',     time: '4 sessions of 1 hr 30 min · over 8–12 wks', pkgMeta: '4 sessions · over 8–12 wks',  pkgDur: '1 hr 30 min', price: 340, sessionMin: 90, desc: 'Targeted cupping on areas of tension and restricted movement, over four sessions.' },
@@ -68,17 +68,14 @@ const SERVICES = {
   ],
 };
 
-/* ---- Promotional discount ----
-   Ended Sep 2026 — PROMO_DISCOUNT is 0, so netPrice() now just returns
-   svc.price (the full list price) and every strikethrough disappears on its
-   own. HALOE20 (see functions/_discounts.js) is the only discount left,
-   applied on top of this full price rather than stacking with a promo.
-   netPrice() is still the amount actually displayed and charged — nothing
-   should read svc.price directly for money, in case a promo returns later. */
-const PROMO_DISCOUNT = 0.2; // Introductory pricing (Oct 2026): 20% off, shown struck through. Mirror in functions/_services.js and index.html's HB_PROMO_DISCOUNT.
-
+/* ---- Site-wide introductory offer ----
+   The percentage and its end date (30 April 2027) live in ONE place: offer-config.js, which every page that
+   loads this file loads first. After the end date siteOfferPercent() is 0, netPrice() returns the list price and
+   every strikethrough disappears on its own. A discount code never stacks with the offer — the customer gets
+   the single larger discount (functions/_discounts.js priceWithCode). netPrice() is the amount actually
+   displayed and charged — nothing should read svc.price directly for money. */
 function netPrice(svc) {
   // Round at the pence level so sub-£1 prices (e.g. the 50p test treatment)
   // are preserved. For whole-pound prices (40, 75, …) the result is identical.
-  return Math.round(svc.price * (1 - PROMO_DISCOUNT) * 100) / 100;
+  return Math.round(svc.price * (1 - siteOfferPercent() / 100) * 100) / 100;
 }

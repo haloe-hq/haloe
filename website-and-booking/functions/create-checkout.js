@@ -2,7 +2,7 @@ import { reserveSlot, confirmBooking, releaseBooking, slotToMinutes, makeHoldRef
 import { isOfferableStart, TURNAROUND_MIN } from './_slots.js';
 import { CLINIC_RULES, CLINIC_VENUE_NAME, CLINIC_VENUE_ADDRESS } from './_clinic.js';
 import { resolveCart, formatDuration, cartFitsLocation } from './_services.js';
-import { validateDiscountCode, applyDiscount, reserveDiscountCode, confirmDiscountRedemption, releaseDiscountReservation } from './_discounts.js';
+import { validateDiscountCode, priceWithCode, reserveDiscountCode, confirmDiscountRedemption, releaseDiscountReservation } from './_discounts.js';
 import { travelQuote, travelLabelFor } from './_travel.js';
 import { notifyBooking, formatGBP, upperPostcode } from './_notify.js';
 
@@ -74,7 +74,15 @@ export async function onRequestPost(context) {
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      const applied = applyDiscount(originalAmount, result.percent);
+      // Never stacks with the site-wide offer: the larger single discount wins. A code that would not beat
+      // the offer is refused here, before anything is reserved, so it is not used up for nothing.
+      const applied = priceWithCode(cart, result.percent, !!result.waivesTravel, new Date());
+      if (!applied.usesCode) {
+        return new Response(JSON.stringify({ error: 'discount_invalid', reason: 'offer_better' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
       treatmentAmount = applied.finalPence;
       discountPenceApplied = applied.discountPence;
       appliedCode = result.code;
