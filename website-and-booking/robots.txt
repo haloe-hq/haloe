@@ -6,4 +6,10 @@ Disallow: /intake
 Disallow: /intake.html
 Disallow: /intake-submit
 
+# Private client app and booking API
+Disallow: /app/
+Disallow: /create-checkout
+
+# AI search crawlers are welcome on the public pages (see /llms.txt)
+
 Sitemap: https://haloe.health/sitemap.xml
