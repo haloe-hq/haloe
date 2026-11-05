@@ -41,6 +41,10 @@
     if (window.fbq && CFG.META_PIXEL_ID) {
       var m = { value: d.value, currency: cur }; if (d.name) m.content_name = d.name;
       fbq('track', name, m);
+      // Health and wellness datasets can have standard events held back by Meta, so the same moments are
+      // also sent as custom events (27 Oct 2026). Same data as above: a price, never a name or health detail.
+      var custom = { InitiateCheckout: 'CheckoutStarted', Purchase: 'BookingCompleted' }[name];
+      if (custom) fbq('trackCustom', custom, m);
     }
     if (window.gtag && CFG.GA4_ID) {
       var g = { value: d.value, currency: cur };
