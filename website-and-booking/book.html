@@ -3417,6 +3417,17 @@ function isMobile() {
   return state.location === 'mobile';
 }
 
+// Samsung phones (Samsung Internet, or Chrome with Samsung Pass) open a "Select address" strip over the keyboard
+// from the Name field, because name + mobile + email look like a saved address profile. Only on Samsung devices
+// the three contact fields drop their autofill hints, so everyone else keeps name/phone/email suggestions.
+(function () {
+  if (!/SamsungBrowser|SM-[A-Z0-9]+/i.test(navigator.userAgent || '')) return;
+  ['fullname', 'phone', 'email'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) { el.setAttribute('autocomplete', 'off'); el.setAttribute('data-form-type', 'other'); }
+  });
+})();
+
 const touchedFields = new Set();
 function markTouched(id) { touchedFields.add(id); checkStep3(); }
 
