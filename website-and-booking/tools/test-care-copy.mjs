@@ -2,7 +2,8 @@
 //  * the wording is one shared constant (care-copy.js) and says exactly what was agreed,
 //  * every place reads it: booking page, intake form, confirmation email, both FAQs (+ FAQPage JSON-LD) — static FAQ text must match,
 //  * the intake tick is required and the server saves it with a server-side timestamp (and never defaults it),
-//  * no gender field was added anywhere.
+//  * the only gender question is the OPTIONAL one on the intake form (6 Nov 2026); it only decides whether the navel-to-knees
+//    sentence is shown. The booking page and checkout never ask it.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,11 +40,12 @@ check('no red/green/warning marks on the card', !/⚠/.test(book.slice(iCard, iP
 
 // ---- intake form
 const intake = read('intake.html');
-check('intake loads /care-copy.js and fills heading, body and tick from it', intake.includes('<script src="/care-copy.js"></script>') && /careHead[\s\S]{0,120}C\.heading[\s\S]{0,200}C\.body[\s\S]{0,120}C\.tick/.test(intake), 0);
+check('intake loads /care-copy.js; heading and tick come from it; everyone sees the neutral line, and the navel-to-knees sentence (CARE_COPY.body) only for male clients', intake.includes('<script src="/care-copy.js"></script>') && /careHead'\)\.textContent = CARE\.heading/.test(intake) && /careTick'\)\.textContent = CARE\.tick/.test(intake) && /CARE\.generalBody/.test(intake) && /male \? ' ' \+ \(CARE\.body/.test(intake), 0);
+check('the neutral line does not mention the navel or knees', !!CARE_COPY.generalBody && !/navel|knee/i.test(CARE_COPY.generalBody), CARE_COPY.generalBody);
 check('tick box exists, NOT pre-checked, required (step 5) and sent in collect()', /<input type="checkbox" id="consent_modesty">/.test(intake) && !/id="consent_modesty"[^>]*checked/.test(intake) && /\{ key:'consent_modesty', type:'consent' \}/.test(intake) && /consent_modesty: checkVal\('consent_modesty'\)/.test(intake), 0);
-check('Submit starts disabled and is toggled by the tick', /id="submitBtn" disabled/.test(intake) && /submitBtn\.disabled = !box\.checked/.test(intake), 0);
+check('Submit starts disabled and is toggled by the tick', /id="submitBtn"[^>]*\bdisabled/.test(intake) && /submitBtn\.disabled = need/.test(intake) && /typeHas\('modesty'\)/.test(intake), 0);
 check('28px tick on a 56px row', /\.care-field \.check-item \{ min-height: 56px/.test(intake) && /\.care-field \.check-item \.check-box \{ width: 28px; height: 28px/.test(intake), 0);
-const collectBlock = intake.slice(intake.indexOf('function collect()'), intake.indexOf('var submitBtn'));
+const collectBlock = intake.slice(intake.indexOf('function collectBase()'), intake.indexOf('var submitBtn'));
 const keys = (collectBlock.match(/^ {6}[a-z_]+:/gm) || []).length;
 check('payload is now 43 keys', keys === 43, keys);
 const ids = (collectBlock.match(/(?:textVal|radioVal|checkVal|allChecked)\('([a-z_]+)'\)/g) || []).map((m) => m.match(/'([a-z_]+)'/)[1]);
@@ -89,8 +91,8 @@ const ld = JSON.parse(hm.match(/<script type="application\/ld\+json">\s*(\{[\s\S
 const q = ld.mainEntity.find((e) => e.name === CARE_COPY.faqQuestion);
 check('FAQPage JSON-LD matches the visible text exactly', q && q.acceptedAnswer.text === CARE_COPY.faqAnswer, q);
 
-// ---- no gender anywhere
-check('no gender field was added (booking, intake, checkout)', ![book, intake, read('functions/create-checkout.js'), read('functions/intake-submit.js')].some((t) => /\bgender\b|name="sex"|id="sex"/i.test(t)), 0);
+// ---- gender: optional, intake only
+check('gender is asked only on the intake form, and only as an optional question', ![book, read('functions/create-checkout.js')].some((t) => /\bgender\b|name="sex"|id="sex"/i.test(t)) && /data-group="gender"/.test(intake) && !/\{ key:'gender'/.test(intake), 0);
 
 console.log = log;
 for (const l of R) console.log(l);

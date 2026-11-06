@@ -103,3 +103,5 @@ grant select, insert, update, delete on public.intake_forms to service_role;
 -- consent_modesty_at is stamped by the Function (server time), not by the browser.
 alter table public.intake_forms add column if not exists consent_modesty boolean;
 alter table public.intake_forms add column if not exists consent_modesty_at timestamptz;
+
+-- Added 6 Nov 2026: form types, risk flags and the intake failure log — see supabase-intake-types.sql.

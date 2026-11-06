@@ -878,6 +878,12 @@ const AUDIENCE_CODES_ENABLED = false;
 // Medications that matter for a cupping session (blood-thinning / clotting related).
 const CLOT_RE = /warfarin|apixaban|eliquis|rivaroxaban|xarelto|clopidogrel|plavix|aspirin|tranexamic(?: acid)?|cyklokapron/i;
 
+// Intake form types (intake-rules.js has the server's copy of this list).
+const FORM_TYPES = { hijama: 'Hijama', dry: 'Dry cupping', massage: 'Massage', coaching: 'Life coaching', notsure: 'Not sure yet', checkin: 'Returning check-in', homevisit: 'Home visit details' };
+const formTypeLabel = (t) => FORM_TYPES[t] || 'Hijama';
+// Labels for the extra, per-form answers (shown in the client's own words; the gender answer only drives the modesty note, so it is not shown).
+const ANSWER_LABELS = { areas_to_avoid: 'Areas to avoid', pressure: 'Pressure preference', unwell_today: 'Unwell or feverish today', goals: 'Goals', wants: 'What they want from sessions',
+  changed: 'Anything changed since last time?', detail: 'What has changed', address: 'Address for the visit', access_notes: 'Access notes', pets: 'Pets at home', pets_detail: 'Pets (detail)', others_present: 'Who else will be there' };
 const SAFETY = [
   ['is_pregnant', 'Pregnant, or a chance she could be'],
   ['breastfeeding', 'Breastfeeding'],
@@ -1318,6 +1324,12 @@ function buildFlags(client, intake) {
     flags.push({ t: 'Medication on the clotting watch-list: ' + hit.toLowerCase(), d: 'As typed: “' + meds.replace(/\s+/g, ' ') + '”' });
   }
   if (lower(intake.is_pregnant) === 'yes' || lower(intake.breastfeeding) === 'yes') { /* already listed above */ }
+  // Higher-risk answers the form itself flagged (blood thinners, pregnancy, diabetes, anaemia, bleeding disorder, blood-borne infection,
+  // skin at the treatment site, unwell on the day, a check-in that says something changed). Same wording as above, so nothing shows twice.
+  if (Array.isArray(intake.risk_flags)) {
+    const have = new Set(flags.map((f) => lower(f.t)));
+    for (const label of intake.risk_flags) { if (label && !have.has(lower(label))) { flags.push({ t: label, d: 'Flagged from their ' + lower(formTypeLabel(intake.form_type)) + ' form' }); have.add(lower(label)); } }
+  }
   if (!trimStr(intake.main_concern)) flags.push({ t: 'No main concern given', d: 'The main-concern box was left blank. Ask what they want from the session.' });
   const own = norm10(client && client.phone), emer = norm10(intake.emergency_contact_phone);
   if (own && emer && own === emer) flags.push({ t: 'Emergency contact is their own number', d: 'Ask for someone else.' });
@@ -2203,7 +2215,7 @@ function viewClients() {
   const none = all.length
     ? (q ? stateHTML('No one matches “' + S.filter.trim() + '”', 'Check the spelling, or try a phone number.') : fk === 'rebook' ? stateHTML('No one needs rebooking', 'Everyone has been seen recently or has a session booked.') : stateHTML('No one here', ''))
     : stateHTML('No clients yet', 'People appear here after they book or send an intake form.');
-  shell(`<div class="tile-home clients"><div class="th-titlerow"><h1>Clients</h1></div>${unlinkedCardHTML()}
+  shell(`<div class="tile-home clients"><div class="th-titlerow"><h1>Clients</h1><button class="cl-nudge" id="intakeLinkBtn" type="button">Intake link</button></div>${unlinkedCardHTML()}
     <input class="cl-search" id="q" type="search" placeholder="Search by name or phone" value="${esc(S.filter)}" autocomplete="off" aria-label="Search clients">
     <div class="cl-chipsbar" role="group" aria-label="Stage"><button class="cl-fchip" type="button" data-cf="all" aria-pressed="${fk === 'all'}">All ${all.length}</button>${STAGES.map(([k, l]) => `<button class="cl-fchip" type="button" data-cf="${k}" aria-pressed="${fk === k}">${l} ${stageCount[k]}</button>`).join('')}</div>
     <div class="cl-chipsbar cl-where" role="group" aria-label="Where"><button class="cl-fchip" type="button" data-wf="all" aria-pressed="${wk === 'all'}">Anywhere</button>${Object.entries(WHERE_LABEL).map(([k, l]) => `<button class="cl-fchip" type="button" data-wf="${k}" aria-pressed="${wk === k}">${l}</button>`).join('')}</div>
@@ -2211,6 +2223,7 @@ function viewClients() {
     ${list.length ? `<div class="crm-table" role="table" aria-label="Clients"><div class="crm-th" role="row"><span>Contact</span><span>Where</span><span>Stage</span><span>Value</span><span>Sessions</span></div>${list.map((p) => `<button class="crm-tr" type="button" data-brief="${esc(p.key)}" role="row"><span class="crm-c"><b>${esc(p.name || '—')} ${testPill(p.client)}</b><i>${esc([p.phone, p.email].filter(Boolean).join(' · '))}</i></span><span>${esc(WHERE_LABEL[whereOf(p)] || '—')}</span><span><em class="stg stg-${stageOf(p, t)}">${esc(STAGES.find(([k]) => k === stageOf(p, t))[1])}</em></span><span>${valueOf(p) ? money(valueOf(p)) : '—'}</span><span>${esc(clientMeta(p, t))}</span></button>`).join('')}</div>` : ''}</div>`);
   const qi = document.getElementById('q');
   qi.oninput = () => { S.filter = qi.value; const pos = qi.selectionStart; render(); const n = document.getElementById('q'); n.focus(); n.setSelectionRange(pos, pos); };
+  const ilb = document.getElementById('intakeLinkBtn'); if (ilb) ilb.onclick = () => intakeLinkSheet(null);
   document.querySelectorAll('[data-cf]').forEach((b) => { b.onclick = () => { S.clientFilter = b.dataset.cf; render(); }; });
   document.querySelectorAll('[data-wf]').forEach((b) => { b.onclick = () => { S.whereFilter = b.dataset.wf; render(); }; });
   document.querySelectorAll('[data-brief]').forEach((b) => { b.onclick = () => { location.hash = '#/brief/' + b.dataset.brief; }; });
@@ -2222,6 +2235,34 @@ function viewClients() {
   }; });
 }
 /** Open the prefilled WhatsApp message and log it. A second nudge since the last session asks first. */
+/** Send or copy the intake form link. Works for anyone, booked or not: pick the form for them, or let them choose. */
+function intakeLinkSheet(p) {
+  const opts = [['', 'Let them choose']].concat(Object.entries(FORM_TYPES));
+  const hasWa = !!(p && p.phone);
+  const bg = document.createElement('div'); bg.className = 'sheet-bg';
+  bg.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Intake form link"><div class="grab"></div><div class="lab">Intake form</div>
+    <div style="font-weight:700;font-size:20px;letter-spacing:-.02em;margin-top:2px">Send the form link</div>
+    <p class="muted small" style="margin:var(--s2) 0 var(--s3)">Works for anyone, booked or not. They choose the form, or you can pick it for them.</p>
+    <label class="small muted" for="itType">Which form</label>
+    <select id="itType" class="cl-search" style="margin:6px 0 var(--s3)">${opts.map(([k, l]) => `<option value="${esc(k)}">${esc(l)}</option>`).join('')}</select>
+    <div class="small" id="itLink" style="word-break:break-all;margin-bottom:var(--s2)"></div>
+    <div class="sheet-actions" style="grid-template-columns:1fr 1fr"><button class="btn ghost" id="itCopy" type="button">Copy link</button>${hasWa ? '<button class="btn" id="itWa" type="button">Send on WhatsApp</button>' : '<button class="btn" id="itClose" type="button">Close</button>'}</div></div>`;
+  document.body.appendChild(bg);
+  const link = () => 'https://haloe.health/intake' + (bg.querySelector('#itType').value ? '?type=' + bg.querySelector('#itType').value : '');
+  const paint = () => { bg.querySelector('#itLink').textContent = link(); };
+  paint();
+  bg.querySelector('#itType').onchange = paint;
+  bg.onclick = (e) => { if (e.target === bg) bg.remove(); };
+  bg.querySelector('#itCopy').onclick = async () => { const ok = await copyText(link()); toastMsg(ok ? 'Copied' : 'Couldn\u2019t copy'); };
+  const close = bg.querySelector('#itClose'); if (close) close.onclick = () => bg.remove();
+  const wa = bg.querySelector('#itWa');
+  if (wa) wa.onclick = () => {
+    const msg = 'Hi ' + (firstName(p.name) || 'there') + ", it's Halima from haloe. Please fill in this short form before your session. It takes a couple of minutes: " + link();
+    window.open('https://wa.me/' + waNumber(p.phone) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');   // inside the tap, so the phone lets it open
+    bg.remove();
+  };
+}
+
 function nudgeClient(p, t) {
   if (!p || !p.phone) return;
   const prior = nudgeSince(p, t);
@@ -2475,6 +2516,13 @@ function bookingPerson(id) {
   if (b.client_id) { const c = S.data.clients.find((x) => x.id === b.client_id); if (c) return { key: 'c/' + c.id, name: c.full_name, phone: c.phone, email: c.email, client: c, bookings: bookingsOfClient(c) }; }
   return { key: 'b/' + b.id, name: b.customer_name, phone: b.customer_phone, email: b.customer_email, client: null, bookings: [b] };
 }
+/** The answers that belong to a particular form (areas to avoid, goals, the visit address...), in the client's own words. */
+function answersCard(intake, words) {
+  const a = intake && intake.answers;
+  if (!a || typeof a !== 'object') return '';
+  const rows = Object.keys(a).filter((k) => k !== 'gender' && trimStr(a[k])).map((k) => `<div><div class="k">${esc(ANSWER_LABELS[k] || k.replace(/_/g, ' '))}</div>${words(a[k])}</div>`).join('');
+  return rows ? `<div class="card"><div class="section-label">${esc(formTypeLabel(intake.form_type))} form</div><div class="kv rows" style="margin-top:12px">${rows}</div></div>` : '';
+}
 function viewBrief(key, bid) {
   const p = findPerson(key);
   if (!p && S.briefRetried !== key) {   // e.g. a just-submitted intake opened from an alert: reload the data once per link, then try again
@@ -2518,12 +2566,13 @@ function viewBrief(key, bid) {
       <div class="muted small">${age != null ? age + ' years old' : 'Age not given'}${p.email ? ' · ' + esc(p.email) : ''}</div>
       <div class="facts">
         <div class="fact"><div class="k">Phone</div><div class="v">${esc(p.phone || '—')}</div></div>
+        <div class="fact"><div class="k">Form</div><div class="v">${intake ? esc(formTypeLabel(intake.form_type)) : '—'}</div></div>
         <div class="fact"><div class="k">Hijama before</div><div class="v">${intake ? yn(intake.had_hijama_before) : '—'}</div></div>
         <div class="fact"><div class="k">Photo consent</div><div class="v">${intake ? yn(intake.photo_consent) : '—'}</div></div>
         <div class="fact"><div class="k">Signature</div><div class="v">${intake && intake.signature_path ? 'On file' : intake ? 'Not on file' : '—'}</div></div>
       </div>
       ${intake && intake.signature_path ? `<div class="sig"><img class="thumb" id="sigImg" alt="Signature" hidden><span class="small muted" id="sigNote">Loading signature…</span></div>` : ''}
-      <div class="contact" style="flex-wrap:wrap">${p.phone ? `<a class="btn" href="tel:${esc(p.phone.replace(/[^\d+]/g, ''))}" data-call="${esc(p.phone)}" data-callname="${esc(p.name || '')}">Call</a><a class="btn ghost" href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}${c ? '<button class="btn ghost" id="ciBtn" type="button">Check-in</button>' : ''}${c ? '<button class="btn ghost" id="pvBtn" type="button">View as ' + esc(firstName(p.name) || 'client') + '</button>' : ''}</div>
+      <div class="contact" style="flex-wrap:wrap">${p.phone ? `<a class="btn" href="tel:${esc(p.phone.replace(/[^\d+]/g, ''))}" data-call="${esc(p.phone)}" data-callname="${esc(p.name || '')}">Call</a><a class="btn ghost" href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}<button class="btn ghost" id="itBtn" type="button">Intake form</button>${c ? '<button class="btn ghost" id="ciBtn" type="button">Check-in</button>' : ''}${c ? '<button class="btn ghost" id="pvBtn" type="button">View as ' + esc(firstName(p.name) || 'client') + '</button>' : ''}</div>
     </div>
     ${act}
     <div class="card"><div class="section-label">Conditions, medication, allergies</div><div class="kv rows" style="margin-top:12px">
@@ -2533,6 +2582,7 @@ function viewBrief(key, bid) {
     <div class="card"><div class="section-label">Main concern and safety notes</div><div class="kv rows" style="margin-top:12px">
       <div><div class="k">Main concern</div>${words(intake && intake.main_concern)}</div>
       <div><div class="k">Safety notes</div>${words(intake && intake.safety_notes)}</div></div></div>
+    ${answersCard(intake, words)}
     ${c ? progressCard(ciList) : ''}
     ${c ? photosCard(c, p) : ''}
     ${ciList.length ? `<div class="card"><div class="section-label">Check-ins</div><div class="hist">${ciList.slice().reverse().slice(0, 4).map((x) => `<div class="h"><b>${shortDate(new Date(x.taken_at).getTime())}</b> · ${[['Concern', x.concern_score], ['Energy', x.energy], ['Sleep', x.sleep]].filter((r) => r[1] != null).map((r) => r[0] + ' ' + r[1]).join(' · ') || 'No scores'}${x.pain_areas ? `<br><span class="muted">Pain areas:</span> ${esc(x.pain_areas)}` : ''}${x.note ? `<br><span class="muted">Note:</span> ${esc(x.note)}` : ''}</div>`).join('')}</div></div>` : ''}
@@ -2552,6 +2602,7 @@ function viewBrief(key, bid) {
   document.querySelectorAll('[data-resched]').forEach((btn) => { btn.onclick = () => openReschedule(Number(btn.dataset.resched), p); });
   document.querySelectorAll('[data-cancel]').forEach((btn) => { btn.onclick = () => openCancelBooking(Number(btn.dataset.cancel)); });
   const pvBtn = document.getElementById('pvBtn'); if (pvBtn) pvBtn.onclick = () => startPreview(p.key);
+  const itBtn = document.getElementById('itBtn'); if (itBtn) itBtn.onclick = () => intakeLinkSheet(p);
   const ciBtn = document.getElementById('ciBtn');
   if (ciBtn) ciBtn.onclick = () => openCheckIn(c, p.bookings.find((b) => confirmed(b) && b.booking_date === todayISO()) || null);   // today's session, if any
   const save = document.getElementById('noteSave');

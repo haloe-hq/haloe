@@ -222,10 +222,11 @@ export function intakeNeedsLook(intake, clientPhone) {
 }
 
 /** A client completed the intake form. Opens that client's brief. Never throws. */
-export async function pushIntakeCompleted(env, { clientId, intake, clientPhone }) {
+export async function pushIntakeCompleted(env, { clientId, intake, clientPhone, riskFlags }) {
   try {
     let needs = false;
     try { needs = intakeNeedsLook(intake || {}, clientPhone); } catch (e) { needs = false; }
+    if (Array.isArray(riskFlags) && riskFlags.length) needs = true; // any flagged answer (blood thinners, pregnancy, diabetes...) is worth a look
     return await notifyAdmins(env, {
       kind: 'intake',
       body: needs ? 'Intake form completed · needs a look' : 'Intake form completed',

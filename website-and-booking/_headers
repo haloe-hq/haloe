@@ -1,0 +1,13 @@
+# Cloudflare Pages response headers.
+#
+# The intake form and the files it is built from are always re-checked with the server before use. Without this, a phone or an
+# in-app browser (WhatsApp, Instagram) can keep an old copy of the form and send answers the server no longer accepts — that is
+# how a form can fail for one person and work for everyone else. Re-checking is cheap: an unchanged file answers "not modified".
+/intake
+  Cache-Control: no-cache
+/intake.html
+  Cache-Control: no-cache
+/intake-rules.js
+  Cache-Control: no-cache
+/care-copy.js
+  Cache-Control: no-cache

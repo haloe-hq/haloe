@@ -544,7 +544,27 @@
 </style>
 <link rel="stylesheet" href="/tokens.css">
 <link rel="stylesheet" href="/ui.css">
+<style>
+  /* ===== Form types (6 Nov 2026) ===== */
+  .hide-type { display: none !important; }
+  .wrap.choosing .intro-head, .wrap.choosing #progress, .wrap.choosing #intakeForm { display: none !important; }
+  #typeScreen h1 { font-size: 28px; line-height: 1.15; margin: var(--s2, 8px) 0 8px; }
+  .type-grid { display: grid; gap: 12px; margin: 20px 0 8px; }
+  .type-card { display: block; width: 100%; text-align: left; border: 1px solid var(--hairline, rgba(0,0,0,.12)); background: #fff; border-radius: 18px; padding: 16px 18px; min-height: 64px; font: inherit; color: inherit; cursor: pointer; }
+  .type-card b { display: block; font-size: 17px; font-weight: 600; margin-bottom: 2px; }
+  .type-card span { display: block; font-size: 14px; line-height: 1.4; opacity: .72; }
+  @media (hover: hover) { .type-card:hover { border-color: var(--gold, #C8A96E); } }
+  .type-card:focus-visible { outline: 2px solid var(--gold, #C8A96E); outline-offset: 2px; }
+  .change-type { background: none; border: 0; padding: 4px 0; font: inherit; font-size: 14px; color: var(--gold-deep, #7A5F25); text-decoration: underline; cursor: pointer; margin-top: 10px; }
+  .form-banner { margin: 0 0 16px; padding: 14px 16px; border-radius: 14px; background: #FBEDEA; color: #8A2E22; font-size: 15px; line-height: 1.45; }
+  .form-banner.kept { background: #F1EBDD; color: #5B4A22; }
+  .male-clause { margin: 10px 0 0; padding: 12px 14px; border-radius: 12px; background: #F1EBDD; font-size: 14px; line-height: 1.5; }
+  .error-actions { display: grid; gap: 10px; justify-items: center; margin-top: 8px; }
+  #errorScreen #errorDetail { margin: 0 0 12px; }
+  #typeScreen { text-align: left; padding: 8px 0 0; }
+</style>
 <script src="/care-copy.js"></script>
+<script src="/intake-rules.js"></script>
 </head>
 <body>
 <!-- Branded loading screen — fades on window load; CSS failsafe hides it if JS fails -->
@@ -592,11 +612,27 @@
   <a href="book.html" class="btn btn-gold nav-overlay-cta">Book Now</a>
 </div>
 
-<div class="wrap">
+<div class="wrap choosing">
+
+  <!-- Which form? (or ?type=hijama|dry|massage|coaching|notsure|checkin|homevisit to skip this screen) -->
+  <div class="screen active" id="typeScreen">
+    <h1>Which form do you need?</h1>
+    <p class="intro-line">Choose the one that fits. Everything you share is private and kept confidential.</p>
+    <div class="type-grid">
+      <button type="button" class="type-card" data-type="hijama"><b>Hijama</b><span>The full health screening for wet cupping</span></button>
+      <button type="button" class="type-card" data-type="dry"><b>Dry cupping</b><span>The same screening, without the wet-cupping questions</span></button>
+      <button type="button" class="type-card" data-type="massage"><b>Massage</b><span>A shorter form</span></button>
+      <button type="button" class="type-card" data-type="coaching"><b>Life coaching</b><span>Your goals and what you would like from sessions. No health screening</span></button>
+      <button type="button" class="type-card" data-type="notsure"><b>Not sure yet</b><span>A few quick questions. Halima will point you to the right session</span></button>
+      <button type="button" class="type-card" data-type="checkin"><b>Returning client check-in</b><span>Anything changed since last time? One screen</span></button>
+      <button type="button" class="type-card" data-type="homevisit"><b>Home visit details</b><span>Address, access, pets and who will be there</span></button>
+    </div>
+  </div>
 
   <div class="intro-head">
-    <h1>Your health &amp; consent form</h1>
-    <p class="intro-line">Welcome, and thank you for booking with haloe. This short form takes about two minutes and helps me care for you safely. Everything you share is kept private and confidential.</p>
+    <h1 id="introTitle">Your health &amp; consent form</h1>
+    <p class="intro-line" id="introLine">Welcome, and thank you for choosing haloe. This short form takes about two minutes and helps me care for you safely. Everything you share is kept private and confidential.</p>
+    <button type="button" class="change-type" id="changeType">Not the right form? Choose another</button>
   </div>
 
   <!-- Progress -->
@@ -609,6 +645,8 @@
   </div>
 
   <form id="intakeForm" autocomplete="on" novalidate>
+
+    <div class="form-banner" id="formBanner" role="alert" hidden></div>
 
     <!-- Honeypot (hidden from humans) -->
     <div class="hp" aria-hidden="true">
@@ -639,6 +677,16 @@
           <label class="opt"><input type="radio" name="age_confirmed" value="No"><span>No</span></label>
         </div>
         <div class="field-error" data-for="age_confirmed">Please confirm.</div>
+      </div>
+
+      <div class="field">
+        <label class="q">Are you a man or a woman? <span class="opt-hint">(optional — only so I show you the right modesty note)</span></label>
+        <div class="choices stack" data-group="gender">
+          <label class="opt"><input type="radio" name="gender" value="Female"><span>Woman</span></label>
+          <label class="opt"><input type="radio" name="gender" value="Male"><span>Man</span></label>
+          <label class="opt"><input type="radio" name="gender" value="Prefer not to say"><span>Prefer not to say</span></label>
+        </div>
+        <p class="male-clause" id="maleClause" hidden></p>
       </div>
 
       <div class="field">
@@ -937,6 +985,390 @@
     </section>
 
     <!-- ===== STEP 5 · Consent & declaration ===== -->
+
+    <!-- ===== MASSAGE · What you'd like ===== -->
+    <section class="step" data-step="m2">
+      <h2>What you'd like</h2>
+      <p class="step-lede">So I can tailor your massage. About a minute.</p>
+      
+      <div class="field">
+        <label class="q" for="ms_help">What would you like help with?</label>
+        <textarea id="ms_help"></textarea>
+        <div class="field-error" data-for="ms_help">Please tell me a little about what you would like.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q" for="ms_avoid">Areas to avoid <span class="opt-hint">(optional)</span></label>
+        <input type="text" id="ms_avoid" placeholder="e.g. neck, left knee">
+        
+      </div>
+      <div class="field">
+        <label class="q">Pressure you prefer</label>
+        <div class="choices stack" data-group="ms_pressure">
+          <label class="opt"><input type="radio" name="ms_pressure" value="Light"><span>Light</span></label>
+          <label class="opt"><input type="radio" name="ms_pressure" value="Medium"><span>Medium</span></label>
+          <label class="opt"><input type="radio" name="ms_pressure" value="Firm"><span>Firm</span></label>
+          <label class="opt"><input type="radio" name="ms_pressure" value="Not sure"><span>Not sure</span></label>
+        </div>
+        <div class="field-error" data-for="ms_pressure">Please choose an option.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q">Any allergies to oils, nuts or fragrances?</label>
+        <div class="choices" data-group="ms_allergies">
+          <label class="opt"><input type="radio" name="ms_allergies" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="ms_allergies" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="ms_allergies">Please choose Yes or No.</div>
+      </div>
+      <div class="field reveal">
+        <label class="q" for="ms_allergies_detail">Please tell me which</label>
+        <textarea id="ms_allergies_detail"></textarea>
+      </div>
+      
+      <div class="step-nav" data-label="">
+        <button type="button" class="btn btn-outline" data-back>Back</button>
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-gold" data-next>Continue</button>
+      </div>
+    </section>
+
+    <!-- ===== MASSAGE · Your health ===== -->
+    <section class="step" data-step="m3">
+      <h2>Your health</h2>
+      <p class="step-lede">A few quick questions so your massage is safe. About a minute.</p>
+      
+      <div class="field">
+        <label class="q">Do you have any ongoing medical conditions?</label>
+        <div class="choices" data-group="ms_conditions">
+          <label class="opt"><input type="radio" name="ms_conditions" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="ms_conditions" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="ms_conditions">Please choose Yes or No.</div>
+      </div>
+      <div class="field reveal">
+        <label class="q" for="ms_conditions_detail">Please tell me about them</label>
+        <textarea id="ms_conditions_detail"></textarea>
+      </div>
+      
+      <div class="field">
+        <label class="q">Are you taking any medication?</label>
+        <div class="choices" data-group="ms_meds">
+          <label class="opt"><input type="radio" name="ms_meds" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="ms_meds" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="ms_meds">Please choose Yes or No.</div>
+      </div>
+      <div class="field reveal">
+        <label class="q" for="ms_meds_detail">Please list it</label>
+        <textarea id="ms_meds_detail"></textarea>
+      </div>
+      
+      <div class="field">
+        <label class="q">Do you take blood thinners?</label>
+        <div class="choices" data-group="ms_thinners">
+          <label class="opt"><input type="radio" name="ms_thinners" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="ms_thinners" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="ms_thinners">Please choose Yes or No.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q">Are you pregnant?</label>
+        <div class="choices" data-group="ms_pregnant">
+          <label class="opt"><input type="radio" name="ms_pregnant" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="ms_pregnant" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="ms_pregnant">Please choose Yes or No.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q">Any recent injury, surgery or blood clot?</label>
+        <div class="choices" data-group="ms_injury">
+          <label class="opt"><input type="radio" name="ms_injury" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="ms_injury" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="ms_injury">Please choose Yes or No.</div>
+      </div>
+      <div class="field reveal">
+        <label class="q" for="ms_injury_detail">Please tell me a little more</label>
+        <textarea id="ms_injury_detail"></textarea>
+      </div>
+      
+      <div class="field">
+        <label class="q">Any skin condition or broken skin in the area to be massaged?</label>
+        <div class="choices" data-group="ms_skin">
+          <label class="opt"><input type="radio" name="ms_skin" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="ms_skin" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="ms_skin">Please choose Yes or No.</div>
+      </div>
+      <div class="field reveal">
+        <label class="q" for="ms_skin_detail">Please tell me a little more</label>
+        <textarea id="ms_skin_detail"></textarea>
+      </div>
+      
+      <div class="field">
+        <label class="q">Do you have a fever, or feel unwell today?</label>
+        <div class="choices" data-group="ms_unwell">
+          <label class="opt"><input type="radio" name="ms_unwell" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="ms_unwell" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="ms_unwell">Please choose Yes or No.</div>
+      </div>
+      
+      <div class="step-nav" data-label="">
+        <button type="button" class="btn btn-outline" data-back>Back</button>
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-gold" data-next>Continue</button>
+      </div>
+    </section>
+
+    <!-- ===== COACHING · Your goals ===== -->
+    <section class="step" data-step="c2">
+      <h2>Your goals</h2>
+      <p class="step-lede">What you would like to work on. About a minute.</p>
+      <div class="consent-statement" id="coachingStatement">Coaching is not therapy. If anything you share goes beyond everyday life, I will encourage you to speak to your GP or another qualified professional.</div>
+      
+      <div class="field">
+        <label class="q" for="co_goals">What would you like to work on, or achieve?</label>
+        <textarea id="co_goals"></textarea>
+        <div class="field-error" data-for="co_goals">Please tell me a little about your goals.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q" for="co_want">What would you like from our sessions?</label>
+        <textarea id="co_want"></textarea>
+        <div class="field-error" data-for="co_want">Please tell me what you are hoping for.</div>
+      </div>
+      
+      <div class="step-nav" data-label="">
+        <button type="button" class="btn btn-outline" data-back>Back</button>
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-gold" data-next>Continue</button>
+      </div>
+    </section>
+
+    <!-- ===== NOT SURE YET (one screen) ===== -->
+    <section class="step" data-step="n1">
+      <h2>A few quick questions</h2>
+      <p class="step-lede">Not sure which session fits? Tell me a little and I will point you to the right one. About a minute.</p>
+      
+      <div class="field">
+        <label class="q" for="n_name">Full name</label>
+        <input type="text" id="n_name" autocomplete="name" placeholder="Your name">
+        <div class="field-error" data-for="n_name">Please enter your full name.</div>
+      </div>
+      <div class="field">
+        <label class="q" for="n_phone">Phone number</label>
+        <input type="tel" id="n_phone" autocomplete="tel" placeholder="+44 7700 000000">
+        <div class="field-error" data-for="n_phone">Please enter a UK phone number, like 07700 900123.</div>
+      </div>
+      <div class="field">
+        <label class="q" for="n_email">Email address</label>
+        <input type="email" id="n_email" autocomplete="email" placeholder="your@email.com">
+        <div class="field-error" data-for="n_email">Please enter a valid email address.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q" for="n_concern">What is bothering you?</label>
+        <textarea id="n_concern"></textarea>
+        <div class="field-error" data-for="n_concern">Please tell me a little about what is bothering you.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q">Are you pregnant or breastfeeding?</label>
+        <div class="choices" data-group="n_pregnant">
+          <label class="opt"><input type="radio" name="n_pregnant" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="n_pregnant" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="n_pregnant">Please choose Yes or No.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q">Do you take blood thinners?</label>
+        <div class="choices" data-group="n_thinners">
+          <label class="opt"><input type="radio" name="n_thinners" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="n_thinners" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="n_thinners">Please choose Yes or No.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q">Do you have a bleeding or clotting disorder?</label>
+        <div class="choices" data-group="n_bleeding">
+          <label class="opt"><input type="radio" name="n_bleeding" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="n_bleeding" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="n_bleeding">Please choose Yes or No.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q">Any recent surgery, injury or blood clot?</label>
+        <div class="choices" data-group="n_surgery">
+          <label class="opt"><input type="radio" name="n_surgery" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="n_surgery" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="n_surgery">Please choose Yes or No.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q">Do you have a fever, or feel unwell today?</label>
+        <div class="choices" data-group="n_unwell">
+          <label class="opt"><input type="radio" name="n_unwell" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="n_unwell" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="n_unwell">Please choose Yes or No.</div>
+      </div>
+      
+      <div class="field">
+        <div class="check-list" data-group="n_consent">
+          <label class="check-item">
+            <input type="checkbox" id="n_consent">
+            <span class="check-box"></span>
+            <span>I consent to haloe securely storing this information for the purpose of my care, in line with UK GDPR. <strong style="color:var(--gold-deep);font-weight:400;">(I consent)</strong></span>
+          </label>
+        </div>
+        <div class="field-error" data-for="n_consent">Please tick to consent.</div>
+      </div>
+      
+      <div class="step-nav" data-label="">
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-gold" data-submit>Submit form</button>
+      </div>
+    </section>
+
+    <!-- ===== RETURNING CLIENT CHECK-IN (one screen) ===== -->
+    <section class="step" data-step="k1">
+      <h2>Quick check-in</h2>
+      <p class="step-lede">Before your visit. Under a minute.</p>
+      
+      <div class="field">
+        <label class="q" for="k_name">Full name</label>
+        <input type="text" id="k_name" autocomplete="name" placeholder="Your name">
+        <div class="field-error" data-for="k_name">Please enter your full name.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q" for="k_email">Email address</label>
+        <input type="email" id="k_email" autocomplete="email" placeholder="your@email.com">
+        <div class="field-error" data-for="k_email">Please enter a valid email address.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q" for="k_phone">Phone number <span class="opt-hint">(optional)</span></label>
+        <input type="tel" id="k_phone" autocomplete="tel" placeholder="+44 7700 000000">
+        <div class="field-error" data-for="k_phone">Please enter a UK phone number, like 07700 900123.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q">Anything changed since last time? <span class="opt-hint">(health, medication, pregnancy, injury, surgery)</span></label>
+        <div class="choices" data-group="k_changed">
+          <label class="opt"><input type="radio" name="k_changed" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="k_changed" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="k_changed">Please choose Yes or No.</div>
+      </div>
+      <div class="field reveal">
+        <label class="q" for="k_detail">Please tell me what has changed</label>
+        <textarea id="k_detail"></textarea>
+      <div class="field-error" data-for="k_detail">Please tell me what has changed.</div></div>
+      
+      <div class="field">
+        <label class="q">Do you have a fever, or feel unwell today?</label>
+        <div class="choices" data-group="k_unwell">
+          <label class="opt"><input type="radio" name="k_unwell" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="k_unwell" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="k_unwell">Please choose Yes or No.</div>
+      </div>
+      
+      <div class="field">
+        <div class="check-list" data-group="k_consent">
+          <label class="check-item">
+            <input type="checkbox" id="k_consent">
+            <span class="check-box"></span>
+            <span>What I have told you is true and up to date. <strong style="color:var(--gold-deep);font-weight:400;">(I agree)</strong></span>
+          </label>
+        </div>
+        <div class="field-error" data-for="k_consent">Please tick to confirm.</div>
+      </div>
+      
+      <div class="step-nav" data-label="">
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-gold" data-submit>Submit form</button>
+      </div>
+    </section>
+
+    <!-- ===== HOME VISIT DETAILS (one screen) ===== -->
+    <section class="step" data-step="h1">
+      <h2>Your visit</h2>
+      <p class="step-lede">So I can find you and arrive well. About a minute.</p>
+      
+      <div class="field">
+        <label class="q" for="h_name">Full name</label>
+        <input type="text" id="h_name" autocomplete="name" placeholder="Your name">
+        <div class="field-error" data-for="h_name">Please enter your full name.</div>
+      </div>
+      <div class="field">
+        <label class="q" for="h_phone">Phone number</label>
+        <input type="tel" id="h_phone" autocomplete="tel" placeholder="+44 7700 000000">
+        <div class="field-error" data-for="h_phone">Please enter a UK phone number, like 07700 900123.</div>
+      </div>
+      <div class="field">
+        <label class="q" for="h_email">Email address</label>
+        <input type="email" id="h_email" autocomplete="email" placeholder="your@email.com">
+        <div class="field-error" data-for="h_email">Please enter a valid email address.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q" for="h_address">Address for the visit</label>
+        <textarea id="h_address"></textarea>
+        <div class="field-error" data-for="h_address">Please enter the address, including the postcode.</div>
+      </div>
+      
+      <div class="field">
+        <label class="q" for="h_access">Access notes <span class="opt-hint">(optional)</span></label>
+        <input type="text" id="h_access" placeholder="Parking, entry code, which floor">
+        
+      </div>
+      
+      <div class="field">
+        <label class="q">Are there any pets at home?</label>
+        <div class="choices" data-group="h_pets">
+          <label class="opt"><input type="radio" name="h_pets" value="Yes"><span>Yes</span></label>
+          <label class="opt"><input type="radio" name="h_pets" value="No"><span>No</span></label>
+        </div>
+        <div class="field-error" data-for="h_pets">Please choose Yes or No.</div>
+      </div>
+      <div class="field reveal">
+        <label class="q" for="h_pets_detail">Which pets, and will they be in the room?</label>
+        <textarea id="h_pets_detail"></textarea>
+      </div>
+      
+      <div class="field">
+        <label class="q" for="h_others">Who else will be there? <span class="opt-hint">(optional)</span></label>
+        <textarea id="h_others"></textarea>
+        
+      </div>
+      
+      <div class="field">
+        <div class="check-list" data-group="h_consent">
+          <label class="check-item">
+            <input type="checkbox" id="h_consent">
+            <span class="check-box"></span>
+            <span>I consent to haloe securely storing this information for the purpose of my visit, in line with UK GDPR. <strong style="color:var(--gold-deep);font-weight:400;">(I consent)</strong></span>
+          </label>
+        </div>
+        <div class="field-error" data-for="h_consent">Please tick to consent.</div>
+      </div>
+      
+      <div class="step-nav" data-label="">
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-gold" data-submit>Submit form</button>
+      </div>
+    </section>
+
     <section class="step" data-step="5">
       <h2>Consent &amp; declaration</h2>
       <p class="step-lede">Read, agree and sign to finish. About a minute.</p>
@@ -1052,7 +1484,7 @@
       <div class="step-nav" data-label="Step 1 of 5">
         <button type="button" class="btn btn-outline" data-back>Back</button>
         <div class="spacer"></div>
-        <button type="button" class="btn btn-gold" id="submitBtn" disabled>Submit form</button>
+        <button type="button" class="btn btn-gold" id="submitBtn" data-submit disabled>Submit form</button>
       </div>
       <p class="care-hint" id="careHint"></p>
     </section>
@@ -1070,6 +1502,7 @@
   <div class="screen" id="errorScreen">
     <div class="mark">!</div>
     <h2>Something went wrong</h2>
+    <p id="errorDetail">Sorry — your form didn't go through. Your answers are still here, so nothing has been lost.</p>
     <p>Sorry — your form didn't go through. Please try again, or message me on Instagram <a href="https://instagram.com/haloe.health" target="_blank" style="color:var(--gold-deep);">@haloe.health</a> and I'll sort it out.</p>
     <button type="button" class="btn btn-outline" id="retryBtn">Try again</button>
   </div>
@@ -1098,9 +1531,15 @@
 (function () {
   'use strict';
 
+  var R = window.INTAKE_RULES;
   var TOTAL = 5;
-  var SECTION_NAMES = { 1:'About you', 2:'Your health', 3:'Safety screening', 4:'Before & after', 5:'Consent & declaration' };
-  var current = 1;
+  var SECTION_NAMES = { '1':'About you', '2':'Your health', '3':'Safety screening', '4':'Before & after', '5':'Consent & declaration',
+    m2:'What you\u2019d like', m3:'Your health', c2:'Your goals', n1:'A few quick questions', k1:'Quick check-in', h1:'Your visit' };
+  // Which steps each form runs through, in order. The first form type (hijama) is the original five-step form, unchanged.
+  var SEQ_BY_TYPE = { hijama:['1','2','3','4','5'], dry:['1','2','3','4','5'], massage:['1','m2','m3','5'], coaching:['1','c2','5'],
+    notsure:['n1'], checkin:['k1'], homevisit:['h1'] };
+  var formType = null, SEQ = ['1'], idx = 0;
+  var current = '1';
 
   // Required validators per step. Each entry: { key, type, msg }
   // type: 'text' (input/select/textarea by id), 'radio' (group by name),
@@ -1152,6 +1591,18 @@
     ]
   };
 
+  REQUIRED.m2 = [ { key:'ms_help', type:'text' }, { key:'ms_pressure', type:'radio' }, { key:'ms_allergies', type:'radio' } ];
+  REQUIRED.m3 = [ { key:'ms_conditions', type:'radio' }, { key:'ms_meds', type:'radio' }, { key:'ms_thinners', type:'radio' }, { key:'ms_pregnant', type:'radio' },
+    { key:'ms_injury', type:'radio' }, { key:'ms_skin', type:'radio' }, { key:'ms_unwell', type:'radio' } ];
+  REQUIRED.c2 = [ { key:'co_goals', type:'text' }, { key:'co_want', type:'text' } ];
+  REQUIRED.n1 = [ { key:'n_name', type:'text' }, { key:'n_phone', type:'text' }, { key:'n_email', type:'email' }, { key:'n_concern', type:'text' },
+    { key:'n_pregnant', type:'radio' }, { key:'n_thinners', type:'radio' }, { key:'n_bleeding', type:'radio' }, { key:'n_surgery', type:'radio' },
+    { key:'n_unwell', type:'radio' }, { key:'n_consent', type:'consent' } ];
+  REQUIRED.k1 = [ { key:'k_name', type:'text' }, { key:'k_email', type:'email' }, { key:'k_phone', type:'text', optional:true }, { key:'k_changed', type:'radio' },
+    { key:'k_detail', type:'text', when:'k_changed' }, { key:'k_unwell', type:'radio' }, { key:'k_consent', type:'consent' } ];
+  REQUIRED.h1 = [ { key:'h_name', type:'text' }, { key:'h_phone', type:'text' }, { key:'h_email', type:'email' }, { key:'h_address', type:'text' },
+    { key:'h_pets', type:'radio' }, { key:'h_consent', type:'consent' } ];
+
   function $(sel, ctx) { return (ctx || document).querySelector(sel); }
   function showError(key, show) {
     var el = $('.field-error[data-for="' + key + '"]');
@@ -1170,9 +1621,20 @@
     }
   }
 
-  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var PHONE_RULE = { phone:'uk', n_phone:'uk', k_phone:'uk', h_phone:'uk', emergency_contact_phone:'any' };
+  var PHONE_MSG = { uk:'Please enter a UK phone number, like 07700 900123 or +44 7700 900123.',
+    any:'Please enter a phone number we can reach: a UK number, or one starting with + and the country code.' };
+
+  function radioChecked(name) { var el = $('input[name="' + name + '"]:checked'); return el ? el.value : ''; }
+  function nodeFor(field) {
+    return document.getElementById(field.key) || $('.choices[data-group="' + field.key + '"]') || $('.check-list[data-group="' + field.key + '"]');
+  }
+  // A question that doesn't belong to the chosen form is hidden, and so never required.
+  function hiddenByType(field) { var n = nodeFor(field); return !!(n && n.closest && n.closest('.hide-type')); }
 
   function fieldValid(field) {
+    if (hiddenByType(field)) return true;
+    if (field.when && radioChecked(field.when) !== 'Yes') return true;
     if (field.type === 'radio') {
       return !!$('input[name="' + field.key + '"]:checked');
     }
@@ -1189,8 +1651,28 @@
     }
     var inp = document.getElementById(field.key);
     var val = inp ? inp.value.trim() : '';
-    if (field.type === 'email') return EMAIL_RE.test(val);
-    return val.length > 0;
+    if (field.optional && !val) return true;
+    if (field.type === 'email') return R.validEmail(val);
+    if (!val.length) return false;
+    if (field.key === 'date_of_birth') return R.checkDob(val).ok;
+    var pr = PHONE_RULE[field.key];
+    if (pr === 'uk') return R.validUkPhone(val);
+    if (pr === 'any') return R.validPhoneAny(val);
+    return true;
+  }
+
+  // The message under a field says what is actually wrong with it (a future date, a short phone number...).
+  function refreshMsg(def) {
+    var msg = $('.field-error[data-for="' + def.key + '"]'), inp = document.getElementById(def.key);
+    if (!msg || !inp) return;
+    if (msg.getAttribute('data-def') == null) msg.setAttribute('data-def', msg.textContent);
+    var val = (inp.value || '').trim(), t = msg.getAttribute('data-def');
+    if (val) {
+      if (def.key === 'date_of_birth') { var c = R.checkDob(val); if (!c.ok) t = R.DOB_MSG[c.reason]; }
+      else if (def.type === 'email') t = 'That email address doesn\u2019t look right. It should look like name@example.com.';
+      else if (PHONE_RULE[def.key]) t = PHONE_MSG[PHONE_RULE[def.key]];
+    }
+    msg.textContent = t; msg.setAttribute('role', 'alert');
   }
 
   function validateStep(step) {
@@ -1200,6 +1682,7 @@
       var ok = fieldValid(fields[i]);
       showError(fields[i].key, !ok);
       markInvalid(fields[i].key, fields[i].type, !ok);
+      refreshMsg(fields[i]);
       if (!ok && !firstBad) firstBad = fields[i];
     }
     if (firstBad) {
@@ -1311,29 +1794,36 @@
   })();
 
   function render() {
+    current = SEQ[idx] || '1';
+    TOTAL = SEQ.length;
     var steps = document.querySelectorAll('.step');
     for (var i = 0; i < steps.length; i++) {
-      steps[i].classList.toggle('active', Number(steps[i].getAttribute('data-step')) === current);
+      steps[i].classList.toggle('active', steps[i].getAttribute('data-step') === current);
     }
-    $('#progressStep').textContent = 'Step ' + current + ' of ' + TOTAL;
-    $('#progressName').textContent = SECTION_NAMES[current];
+    var label = TOTAL > 1 ? 'Step ' + (idx + 1) + ' of ' + TOTAL : '';
+    $('#progressStep').textContent = TOTAL > 1 ? label : 'One short screen';
+    $('#progressName').textContent = (current === '1' && formType === 'coaching') ? 'Your details' : (SECTION_NAMES[current] || '');
     // the action bar shows where you are, like the booking page's summary bar
     var navs = document.querySelectorAll('.step-nav');
-    for (var n = 0; n < navs.length; n++) navs[n].setAttribute('data-label', 'Step ' + current + ' of ' + TOTAL);
-    if (current === 5) sig.resize();
-    var dots = document.querySelectorAll('#progressDots i');
+    for (var n = 0; n < navs.length; n++) navs[n].setAttribute('data-label', label);
+    if (current === '5') sig.resize();
+    var dotsEl = $('#progressDots');
+    var dotHtml = ''; for (var k = 0; k < TOTAL; k++) dotHtml += '<i></i>';
+    dotsEl.innerHTML = dotHtml;
+    var dots = dotsEl.querySelectorAll('i');
     for (var d = 0; d < dots.length; d++) {
-      dots[d].className = (d + 1 === current) ? 'on' : (d + 1 < current ? 'done' : '');
+      dots[d].className = (d === idx) ? 'on' : (d < idx ? 'done' : '');
     }
     window.scrollTo({ top:0, behavior:'smooth' });
   }
 
   function goNext() {
     if (!validateStep(current)) return;
-    if (current < TOTAL) { current++; render(); }
+    hideBanner();
+    if (idx < SEQ.length - 1) { idx++; render(); saveDraft(); }
   }
   function goBack() {
-    if (current > 1) { current--; render(); }
+    if (idx > 0) { idx--; render(); }
   }
 
   // Clear a field's error as soon as the user starts fixing it.
@@ -1384,7 +1874,7 @@
     return 1;
   }
 
-  function collect() {
+  function collectBase() {
     return {
       website: textVal('website'), // honeypot
       full_name: textVal('full_name'),
@@ -1433,45 +1923,191 @@
   }
 
   var submitBtn = document.getElementById('submitBtn');
+  var CARE = window.CARE_COPY || {};
+  function typeHas(f) { var t = (R.TYPES[formType] || {}); return f === 'modesty' ? !!t.physical : f === 'signature' ? !!t.signature : false; }
+
   // The shared wording (care-copy.js) fills the Modesty and care block; Submit stays greyed until the box is ticked (never pre-ticked).
+  // Everyone sees the neutral line; the navel-to-knees note appears only for clients who say they are male.
   (function () {
-    var C = window.CARE_COPY || {};
-    document.getElementById('careHead').textContent = C.heading || '';
-    document.getElementById('careBody').textContent = C.body || '';
-    document.getElementById('careTick').textContent = C.tick || '';
+    document.getElementById('careHead').textContent = CARE.heading || '';
+    document.getElementById('careTick').textContent = CARE.tick || '';
     var box = document.getElementById('consent_modesty'), hint = document.getElementById('careHint');
     box.checked = false;
-    function sync() { submitBtn.disabled = !box.checked; hint.textContent = box.checked ? '' : (C.hint || ''); hint.hidden = box.checked; }
+    function sync() {
+      var need = typeHas('modesty') && !box.checked;
+      submitBtn.disabled = need;
+      hint.textContent = need ? (CARE.hint || '') : '';
+      hint.hidden = !need;
+    }
     box.addEventListener('change', sync); sync();
     window.__careSync = sync;
   })();
-  submitBtn.addEventListener('click', function () {
-    if (!validateStep(5)) return;
-    submitBtn.disabled = true;
-    submitBtn.classList.add('is-loading');
-    submitBtn.setAttribute('aria-busy', 'true');
-    submitBtn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Sending\u2026';
+  function syncMale() {
+    var male = radioChecked('gender') === 'Male' && !!$('.choices[data-group="gender"]') && !$('.choices[data-group="gender"]').closest('.hide-type');
+    var mc = document.getElementById('maleClause');
+    if (mc) { mc.textContent = CARE.body || ''; mc.hidden = !male; }
+    document.getElementById('careBody').textContent = (CARE.generalBody || '') + (male ? ' ' + (CARE.body || '') : '');
+  }
+  document.addEventListener('change', function (e) { if (e.target && e.target.name === 'gender') syncMale(); });
+
+  // ---- Form-level messages, kept answers, and what happens when sending fails ----
+  var DRAFT_KEY = 'haloe_intake_draft_v2';
+  function showBanner(text, kept) { var b = $('#formBanner'); if (!b) return; b.textContent = text; b.className = 'form-banner' + (kept ? ' kept' : ''); b.hidden = false; }
+  function hideBanner() { var b = $('#formBanner'); if (b) b.hidden = true; }
+  function setBusy(btn, on) {
+    if (!btn) return;
+    if (!btn.getAttribute('data-label')) btn.setAttribute('data-label', btn.textContent);
+    if (on) {
+      btn.disabled = true; btn.classList.add('is-loading'); btn.setAttribute('aria-busy', 'true');
+      btn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Sending\u2026';
+    } else {
+      btn.disabled = false; btn.classList.remove('is-loading'); btn.removeAttribute('aria-busy');
+      btn.textContent = btn.getAttribute('data-label');
+    }
+  }
+  // Answers (never consent ticks, the signature or the signing date) are kept for this visit only, so a failed send or an
+  // accidental reload never makes someone start again. They are cleared on success and when the tab closes.
+  function saveDraft() {
+    if (!formType) return;
+    try {
+      var v = {}, els = document.querySelectorAll('#intakeForm input, #intakeForm textarea, #intakeForm select');
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (el.id === 'website' || el.id === 'signature_date' || el.type === 'checkbox') continue;
+        if (el.type === 'radio') { if (el.checked) v['r:' + el.name] = el.value; }
+        else if (el.id) v['v:' + el.id] = el.value;
+      }
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ t: formType, v: v }));
+    } catch (e) {}
+  }
+  function loadDraft() { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) { return null; } }
+  function clearDraft() { try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+  function applyDraft(d) {
+    if (!d || !d.v) return;
+    Object.keys(d.v).forEach(function (k) {
+      var kind = k.slice(0, 2), key = k.slice(2);
+      if (kind === 'r:') { var r = document.querySelectorAll('input[name="' + key + '"]'); for (var i = 0; i < r.length; i++) r[i].checked = (r[i].value === d.v[k]); }
+      else if (kind === 'v:') { var el = document.getElementById(key); if (el && el.type !== 'file') el.value = d.v[k]; }
+    });
+  }
+  var saveTimer = null;
+  function queueSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveDraft, 300); }
+  document.addEventListener('input', queueSave);
+  document.addEventListener('change', queueSave);
+
+  // A failed attempt is recorded (no answers, no health details) so the cause can be found next time.
+  function logFail(status, message) {
+    try {
+      var body = JSON.stringify({ stage: 'client', status: status, message: String(message || '').slice(0, 200), form_type: formType || '' });
+      if (navigator.sendBeacon) { navigator.sendBeacon('/intake-log', new Blob([body], { type: 'application/json' })); }
+      else { fetch('/intake-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body, keepalive: true }); }
+    } catch (e) {}
+  }
+  function onSuccess() {
+    clearDraft();
+    $('#intakeForm').style.display = 'none';
+    $('#progress').style.display = 'none';
+    $('.intro-head').style.display = 'none';
+    document.getElementById('successScreen').classList.add('active');
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  function onFail(status, message, btn) {
+    logFail(status, message);
+    setBusy(btn, false);
+    if (window.__careSync) window.__careSync();
+    // The server told us exactly what is wrong with the form (e.g. a missing tick): say so, right on the form.
+    if (status >= 400 && status < 500 && message && message !== 'network' && message !== 'timeout') {
+      showBanner(message, false);
+      window.scrollTo({ top:0, behavior:'smooth' });
+      return;
+    }
+    var detail = status === 0 && message === 'timeout' ? 'That took too long, so I stopped it.'
+      : status === 0 ? 'We couldn\u2019t reach the server. Please check your connection.'
+      : 'Something went wrong on our side.';
+    document.getElementById('errorDetail').textContent = detail + ' Your answers are still here, so nothing has been lost. Please try again.';
+    $('#intakeForm').style.display = 'none';
+    $('#progress').style.display = 'none';
+    document.getElementById('errorScreen').classList.add('active');
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  function submitForm(btn) {
+    if (btn.classList.contains('is-loading')) return;
+    var last = SEQ[SEQ.length - 1];
+    if (!validateStep(last)) return;
+    hideBanner();
+    setBusy(btn, true);
     var payload = collect();
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 30000);
     fetch('/intake-submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: ctl ? ctl.signal : undefined
     }).then(function (res) {
-      if (!res.ok) throw new Error('Bad status ' + res.status);
-      return res.json().catch(function () { return {}; });
-    }).then(function () {
-      $('#intakeForm').style.display = 'none';
-      $('#progress').style.display = 'none';
-      $('.intro-head').style.display = 'none';
-      document.getElementById('successScreen').classList.add('active');
-      window.scrollTo({ top:0, behavior:'smooth' });
-    }).catch(function () {
-      $('#intakeForm').style.display = 'none';
-      $('#progress').style.display = 'none';
-      document.getElementById('errorScreen').classList.add('active');
-      window.scrollTo({ top:0, behavior:'smooth' });
+      clearTimeout(timer);
+      return res.json().catch(function () { return {}; }).then(function (j) { return { res: res, j: j }; });
+    }).then(function (o) {
+      if (o.res.ok) onSuccess(); else onFail(o.res.status, o.j && o.j.error, btn);
+    }).catch(function (e) {
+      clearTimeout(timer);
+      onFail(0, e && e.name === 'AbortError' ? 'timeout' : 'network', btn);
     });
-  });
+  }
+  var subs = document.querySelectorAll('[data-submit]');
+  for (var si = 0; si < subs.length; si++) subs[si].addEventListener('click', function () { submitForm(this); });
+
+  // What each form adds on top of the shared answers. Answers that match a classic column are copied into it, so the
+  // practitioner app's "Act on this" card, the risk flags and the push alert all work for every form type.
+  function collect() {
+    var d = collectBase(), t = formType || 'hijama', a = {};
+    // Only answers that belong to this form are sent: anything typed into another form (then switched away from) is dropped.
+    var BY_STEP = {
+      '1': ['full_name', 'date_of_birth', 'age_confirmed', 'phone', 'email', 'area_postcode', 'package', 'emergency_contact_name', 'emergency_contact_phone', 'gp_name'],
+      '2': ['has_conditions', 'medical_conditions', 'takes_medication', 'current_medications', 'has_allergies', 'allergies', 'had_hijama_before', 'main_concern'],
+      '3': ['is_pregnant', 'breastfeeding', 'takes_blood_thinners', 'bleeding_disorder', 'diabetes_status', 'chemo_or_radiotherapy', 'has_anaemia', 'infectious_condition', 'recent_surgery', 'blood_pressure', 'skin_condition', 'pacemaker_epilepsy', 'safety_notes'],
+      '4': ['before_after_ack'],
+      '5': ['consent_accurate_info', 'consent_complementary', 'consent_treatment', 'consent_notify_changes', 'consent_data_storage', 'consent_modesty', 'photo_consent', 'signature_name', 'signature_date', 'signature_png']
+    };
+    Object.keys(BY_STEP).forEach(function (st) {
+      if (SEQ.indexOf(st) < 0) BY_STEP[st].forEach(function (k) { d[k] = (typeof d[k] === 'number') ? 0 : ''; });
+    });
+    Object.keys(VIS).forEach(function (k) {
+      var f = document.getElementById(k) || $('.choices[data-group="' + k + '"]') || $('.check-list[data-group="' + k + '"]');
+      var hidden = f && f.closest('.hide-type');
+      if (hidden && k !== 'signature_canvas' && k !== 'gender' && k in d) d[k] = (typeof d[k] === 'number') ? 0 : '';
+    });
+    if (!typeHas('signature')) d.signature_png = '';
+    function V(id) { return textVal(id); }
+    function RAD(n) { return radioChecked(n); }
+    var gq = $('.choices[data-group="gender"]'), g = RAD('gender'); if (g && gq && !gq.closest('.hide-type')) a.gender = g;
+    if (t === 'massage') {
+      d.main_concern = V('ms_help');
+      d.has_allergies = RAD('ms_allergies'); d.allergies = V('ms_allergies_detail');
+      d.has_conditions = RAD('ms_conditions'); d.medical_conditions = V('ms_conditions_detail');
+      d.takes_medication = RAD('ms_meds'); d.current_medications = V('ms_meds_detail');
+      d.takes_blood_thinners = RAD('ms_thinners'); d.is_pregnant = RAD('ms_pregnant');
+      d.recent_surgery = RAD('ms_injury'); d.skin_condition = RAD('ms_skin');
+      d.safety_notes = [V('ms_injury_detail') && ('Injury, surgery or clot: ' + V('ms_injury_detail')), V('ms_skin_detail') && ('Skin: ' + V('ms_skin_detail'))].filter(Boolean).join(' | ');
+      a.areas_to_avoid = V('ms_avoid'); a.pressure = RAD('ms_pressure'); a.unwell_today = RAD('ms_unwell');
+    } else if (t === 'coaching') {
+      d.main_concern = V('co_goals'); a.goals = V('co_goals'); a.wants = V('co_want');
+    } else if (t === 'notsure') {
+      d.full_name = V('n_name'); d.phone = V('n_phone'); d.email = V('n_email'); d.main_concern = V('n_concern');
+      d.is_pregnant = RAD('n_pregnant'); d.takes_blood_thinners = RAD('n_thinners'); d.bleeding_disorder = RAD('n_bleeding'); d.recent_surgery = RAD('n_surgery');
+      a.unwell_today = RAD('n_unwell'); d.consent_data_storage = checkVal('n_consent');
+    } else if (t === 'checkin') {
+      d.full_name = V('k_name'); d.email = V('k_email'); d.phone = V('k_phone');
+      a.changed = RAD('k_changed'); a.detail = V('k_detail'); a.unwell_today = RAD('k_unwell');
+      d.safety_notes = a.detail ? ('Check-in: ' + a.detail) : ''; d.consent_accurate_info = checkVal('k_consent');
+    } else if (t === 'homevisit') {
+      d.full_name = V('h_name'); d.phone = V('h_phone'); d.email = V('h_email');
+      a.address = V('h_address'); a.access_notes = V('h_access'); a.pets = RAD('h_pets'); a.pets_detail = V('h_pets_detail'); a.others_present = V('h_others');
+      d.consent_data_storage = checkVal('h_consent');
+    }
+    d.form_type = t; d.answers = a;
+    return d;
+  }
 
   // ---- Inline validation: check a field when the person leaves it, show the
   // reason under it (and tie it to the field for screen readers), and clear it
@@ -1496,6 +2132,7 @@
       else if (FIELD_MSG[def.key]) msg.textContent = (def.key === 'email' ? 'Please enter your email address.' : FIELD_MSG[def.key]);
     }
     showError(def.key, !ok); markInvalid(def.key, def.type, !ok);
+    refreshMsg(def);
     inp.setAttribute('aria-invalid', ok ? 'false' : 'true');
     if (msg) inp.setAttribute('aria-describedby', msg.id);
   }
@@ -1511,13 +2148,115 @@
     document.getElementById('errorScreen').classList.remove('active');
     $('#intakeForm').style.display = '';
     $('#progress').style.display = '';
-    submitBtn.disabled = false;
-    submitBtn.classList.remove('is-loading');
-    submitBtn.removeAttribute('aria-busy');
-    submitBtn.textContent = 'Submit form';
+    var bs = document.querySelectorAll('[data-submit]');
+    for (var b = 0; b < bs.length; b++) setBusy(bs[b], false);
+    if (window.__careSync) window.__careSync();
     render();
   });
 
+  // ---- Form types: which questions belong to which form ----
+  var VIS = {
+    date_of_birth:'hijama dry massage', age_confirmed:'hijama dry massage', gender:'hijama dry massage',
+    area_postcode:'hijama dry', package:'hijama dry',
+    emergency_contact_name:'hijama dry massage', emergency_contact_phone:'hijama dry massage', gp_name:'hijama dry',
+    infectious_condition:'hijama',
+    consent_accurate_info:'hijama dry massage coaching', consent_complementary:'hijama dry massage coaching', consent_treatment:'hijama dry massage',
+    consent_notify_changes:'hijama dry massage', consent_data_storage:'hijama dry massage coaching', consent_modesty:'hijama dry massage',
+    photo_consent:'hijama dry massage', signature_canvas:'hijama dry massage coaching', signature_name:'hijama dry massage coaching', signature_date:'hijama dry massage coaching'
+  };
+  Object.keys(VIS).forEach(function (key) {
+    var node = document.getElementById(key) || $('.choices[data-group="' + key + '"]') || $('.check-list[data-group="' + key + '"]');
+    var f = node && node.closest('.field');
+    if (f) f.setAttribute('data-types', VIS[key]);
+  });
+  // remember each message's own default wording before anything rewrites it
+  Array.prototype.forEach.call(document.querySelectorAll('.field-error[data-for]'), function (m) { m.setAttribute('data-def', m.textContent); });
+
+  var CONSENT_TXT = {
+    consent_complementary: { massage: 'I understand massage at haloe is for relaxation and wellbeing, and is not a substitute for medical care. ',
+      coaching: 'I understand coaching is not therapy, and that anything beyond everyday life will be referred to my GP or a qualified professional. ' },
+    consent_treatment: { dry: 'I understand dry cupping uses gentle suction that may leave temporary round marks, and I consent to treatment. ',
+      massage: 'I consent to massage on the areas we agree together, and I understand I can ask to stop at any time. ' }
+  };
+  var STATEMENT = {
+    massage: 'Please read before signing. Massage at haloe is a wellbeing treatment, intended to help you relax. It sits alongside your normal healthcare and is not a substitute for medical advice, diagnosis or treatment. Please tell me about anything that changes your health or comfort.',
+    coaching: 'Please read before signing. Coaching at haloe is coaching, not therapy. It is a space to explore your goals and is not a substitute for medical or psychological care. Anything beyond everyday life will be referred to your GP or a qualified professional.'
+  };
+  var INTRO = {
+    hijama: ['Your health & consent form', 'Welcome, and thank you for choosing haloe. This short form takes about two minutes and helps me care for you safely. Everything you share is kept private and confidential.'],
+    dry: ['Dry cupping health form', 'Welcome, and thank you for choosing haloe. This short form takes about two minutes and helps me care for you safely. Everything you share is kept private and confidential.'],
+    massage: ['Massage health form', 'Welcome, and thank you for choosing haloe. This short form takes about a minute and helps me tailor your massage safely. Everything you share is kept private and confidential.'],
+    coaching: ['Coaching form', 'Welcome, and thank you for choosing haloe. A few questions about you and your goals. Everything you share is kept private and confidential.'],
+    notsure: ['A few quick questions', 'Not sure which session is right? Tell me a little and I will point you in the right direction.'],
+    checkin: ['Quick check-in', 'A minute before your visit, so I know if anything has changed.'],
+    homevisit: ['Home visit details', 'So I can find you and arrive well prepared.']
+  };
+  var statementEl = $('.step[data-step="5"] .consent-statement'), statementOrig = statementEl ? statementEl.textContent : '';
+  var photoQ = (function () { var g = $('.choices[data-group="photo_consent"]'); return g ? g.closest('.field').querySelector('.q') : null; })();
+  var photoOrig = photoQ ? photoQ.innerHTML : '';
+
+  function setConsentText(id, type) {
+    var box = document.getElementById(id), item = box && box.closest('.check-item'), span = item && item.querySelector('span:last-child');
+    if (!span || !span.firstChild || span.firstChild.nodeType !== 3) return;
+    if (span._orig == null) span._orig = span.firstChild.nodeValue;
+    var txt = CONSENT_TXT[id] && CONSENT_TXT[id][type];
+    span.firstChild.nodeValue = txt != null ? txt : span._orig;
+  }
+
+  function applyType(t) {
+    formType = t; SEQ = SEQ_BY_TYPE[t]; idx = 0;
+    var tagged = document.querySelectorAll('[data-types]');
+    for (var i = 0; i < tagged.length; i++) {
+      tagged[i].classList.toggle('hide-type', (' ' + tagged[i].getAttribute('data-types') + ' ').indexOf(' ' + t + ' ') < 0);
+    }
+    setConsentText('consent_complementary', t); setConsentText('consent_treatment', t);
+    if (statementEl) statementEl.textContent = STATEMENT[t] || statementOrig;
+    if (photoQ) photoQ.innerHTML = t === 'massage'
+      ? 'Photography <span class="opt-hint">(optional \u2014 your choice, not required)</span>: Are you happy for anonymised photos, never your face, to be used for haloe\u2019s education and social media?'
+      : photoOrig;
+    var intro = INTRO[t] || INTRO.hijama;
+    $('#introTitle').textContent = intro[0]; $('#introLine').textContent = intro[1];
+    $('.wrap').classList.remove('choosing');
+    document.getElementById('typeScreen').classList.remove('active');
+    syncMale(); if (window.__careSync) window.__careSync();
+    try { history.replaceState(null, '', location.pathname + '?type=' + t); } catch (e) {}
+    render();
+  }
+  function showChooser() {
+    formType = null;
+    $('.wrap').classList.add('choosing');
+    document.getElementById('typeScreen').classList.add('active');
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.type-card'), function (b) {
+    b.addEventListener('click', function () { hideBanner(); applyType(b.getAttribute('data-type')); });
+  });
+  document.getElementById('changeType').addEventListener('click', showChooser);
+
+  // Date pickers: a date of birth can't be in the future, or more than 120 years ago.
+  (function () {
+    var dob = document.getElementById('date_of_birth'); if (!dob) return;
+    var n = new Date(), p = function (x) { return ('0' + x).slice(-2); };
+    dob.max = n.getFullYear() + '-' + p(n.getMonth() + 1) + '-' + p(n.getDate());
+    dob.min = (n.getFullYear() - 120) + '-01-01';
+  })();
+
+  // Start-up: ?type=... goes straight to that form (the link Halima sends); otherwise offer the choice, or pick up
+  // where this visit left off.
+  (function () {
+    var want = (new URLSearchParams(location.search).get('type') || '').toLowerCase();
+    var draft = loadDraft();
+    if (SEQ_BY_TYPE[want]) {
+      applyType(want);
+      if (draft && draft.t === want) { applyDraft(draft); syncMale(); showBanner('Welcome back. I kept your answers from earlier, so please check them and carry on.', true); }
+    } else if (draft && SEQ_BY_TYPE[draft.t]) {
+      applyType(draft.t); applyDraft(draft); syncMale();
+      showBanner('Welcome back. I kept your answers from earlier, so please check them and carry on.', true);
+    } else {
+      showChooser();
+    }
+  })();
   render();
 })();
 </script>
