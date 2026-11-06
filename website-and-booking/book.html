@@ -2161,7 +2161,7 @@
     <div class="ios-group postcode-block hidden" id="postcode-block">
       <div class="ios-row postcode-row" onclick="document.getElementById('travel-postcode').focus()">
         <label for="travel-postcode">Postcode</label>
-        <input type="text" id="travel-postcode" placeholder="Tap to enter, e.g. M1 1AA" autocapitalize="characters" autocomplete="postal-code" autocorrect="off" spellcheck="false" enterkeyhint="done" oninput="onTravelPostcodeInput()" onfocus="setTimeout(function(){ try { this.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} }.bind(this), 300)">
+        <input type="text" id="travel-postcode" placeholder="Tap to enter, e.g. M1 1AA" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" oninput="onTravelPostcodeInput()" onfocus="setTimeout(function(){ try { this.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} }.bind(this), 300)">
       </div>
       <p class="field-error" id="travel-postcode-error"></p>
       <div class="travel-fee-line hidden" id="travel-fee-line"></div>
@@ -2237,7 +2237,7 @@
       <label class="field-label" for="address">Address</label>
       <textarea class="field-input field-textarea" id="address" rows="3"
                 placeholder="House number, street, postcode"
-                autocomplete="street-address"
+                autocomplete="off"
                 oninput="checkStep3()" onblur="markTouched('address')"></textarea>
       <p class="field-error" id="address-error"></p>
     </div>
@@ -3422,11 +3422,12 @@ function markTouched(id) { touchedFields.add(id); checkStep3(); }
 
 function checkStep3() {
   document.getElementById('address-row').style.display = isMobile() ? '' : 'none';
-  // The address box only exists for home visits. While it is hidden it must not be fillable either:
-  // a hidden autocomplete="street-address" field makes Android (Samsung Pass) open its "Select address"
-  // panel over the bottom of the page, covering the Continue button.
+  // The address box only exists for home visits. While it is hidden it must not be fillable either.
+  // It (and the Step 1 postcode box) also never advertises address autofill (autocomplete="off", 6 Nov 2026):
+  // any street-address / postal-code field on the page makes Android (Samsung Pass) open its "Select address"
+  // strip over the keyboard from the Name field, covering the Continue button.
   const addrBox = document.getElementById('address');
-  if (addrBox) { addrBox.disabled = !isMobile(); addrBox.setAttribute('autocomplete', isMobile() ? 'street-address' : 'off'); }
+  if (addrBox) { addrBox.disabled = !isMobile(); addrBox.setAttribute('autocomplete', 'off'); }
   const addressError = document.getElementById('address-error');
   const venueBlock = document.getElementById('clinic-venue-block');
   if (isClinic()) {
