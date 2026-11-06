@@ -1652,6 +1652,10 @@
 
   /* Typing on a phone: the fixed footer steps aside so the form has the room. */
   .kb-open .footbar { display: none; }
+  /* ...so the Details step shows its own button at the end of the form instead, where it scrolls into view. */
+  .inline-review, .inline-review-why { display: none; }
+  .kb-open .inline-review { display: block; width: 100%; margin-top: 1.1rem; }
+  .kb-open .inline-review-why:not([hidden]) { display: block; margin: 0.5rem 0 0; text-align: center; font-size: 0.85rem; color: var(--gold-muted, #a89f8c); }
   /* Spare room under the form so even the last field can scroll to the middle. */
   .kb-open body { padding-bottom: 60vh; }
 
@@ -2286,6 +2290,11 @@
     </div>
 
     <button class="btn-primary" id="btn-step4" onclick="goToStep(5)" disabled>Review booking</button>
+
+    <!-- Shown only while the keyboard is up (the bottom bar steps aside then). It scrolls with the form, so it stays
+         reachable above Samsung's "Select address" strip, which sits over the bottom of the page. -->
+    <button type="button" class="btn-primary inline-review" id="inline-review" onclick="if(!this.disabled)goToStep(5)" disabled>Review booking</button>
+    <p class="inline-review-why" id="inline-review-why">Fill in your details to continue</p>
   </div>
 
   <!-- STEP 5: Confirm -->
@@ -3474,7 +3483,10 @@ function checkStep3() {
   const consentsOk =
     document.getElementById('consent1').checked &&
     document.getElementById('consent2').checked;
-  document.getElementById('btn-step4').disabled = !(nameOk && emailOk && phoneOk && addressOk && consentsOk);
+  const detailsOk = !!(nameOk && emailOk && phoneOk && addressOk && consentsOk);
+  document.getElementById('btn-step4').disabled = !detailsOk;
+  const inlineReview = document.getElementById('inline-review');
+  if (inlineReview) { inlineReview.disabled = !detailsOk; const why = document.getElementById('inline-review-why'); if (why) why.hidden = detailsOk; }
   syncFooter();
 }
 
