@@ -144,3 +144,12 @@ grant usage, select on sequence public.bookings_id_seq to service_role;
 grant execute on function public.reserve_slot(
   date, integer, integer, text, text, text, text, text, text, integer, bigint, bigint, text, integer, text, integer, jsonb
 ) to service_role;
+
+-- Added Nov 2026: where a booking came from. All nullable text, safe to re-run.
+-- utm_* come from the ad link (saved only after the visitor accepted cookies); referral is the
+-- "How did you hear about us?" answer on the booking form.
+alter table public.bookings add column if not exists utm_source text;
+alter table public.bookings add column if not exists utm_medium text;
+alter table public.bookings add column if not exists utm_campaign text;
+alter table public.bookings add column if not exists utm_content text;
+alter table public.bookings add column if not exists referral text;

@@ -1,4 +1,4 @@
-import { reserveSlot, confirmBooking, releaseBooking, slotToMinutes, makeHoldRef, STRIPE_SESSION_SECONDS } from './_bookings.js';
+import { reserveSlot, setBookingSource, confirmBooking, releaseBooking, slotToMinutes, makeHoldRef, STRIPE_SESSION_SECONDS } from './_bookings.js';
 import { isOfferableStart, TURNAROUND_MIN } from './_slots.js';
 import { CLINIC_RULES, CLINIC_VENUE_NAME, CLINIC_VENUE_ADDRESS } from './_clinic.js';
 import { resolveCart, formatDuration, cartFitsLocation } from './_services.js';
@@ -8,7 +8,7 @@ import { notifyBooking, formatGBP, upperPostcode } from './_notify.js';
 
 export async function onRequestPost(context) {
   try {
-    const { treatmentName: legacyName, treatmentCategory: legacyCategory, treatments, customerEmail, customerName, customerPhone, customerAddress, date, time, location: rawLocation, notes, bookingDate, discountCode, travelPostcode } = await context.request.json();
+    const { treatmentName: legacyName, treatmentCategory: legacyCategory, treatments, customerEmail, customerName, customerPhone, customerAddress, date, time, location: rawLocation, notes, bookingDate, discountCode, travelPostcode, utm, referral } = await context.request.json();
     // location is 'clinic' | 'mobile' | 'virtual' (online coaching only). Every booking is paid in full — there is
     // no deposit path.
     const location = rawLocation || 'mobile';
@@ -185,6 +185,8 @@ export async function onRequestPost(context) {
           travelZone,
           travelPence,
         }, now);
+
+        if (bookingId !== null) await setBookingSource(context.env, bookingId, { utm, referral });
 
         if (bookingId === null) {
           // Someone else took it during checkout. Ask the client to pick again.

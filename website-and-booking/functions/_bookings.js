@@ -171,6 +171,21 @@ export async function listBookings(env) {
 // the 10-minute hold lapsed and someone else reserved the same time — see
 // STRIPE_SESSION_SECONDS). The booking is confirmed either way, because the
 // customer has paid; the caller flags the clash to Halima.
+// Saves where a booking came from (ad-link tags + the "how did you hear" answer). Only known keys, short text.
+// Fail-open and column-tolerant: if the columns have not been added yet (supabase-bookings-schema.sql) this logs and
+// the booking carries on untouched.
+export async function setBookingSource(env, bookingId, { utm, referral }) {
+  const clean = (v) => (typeof v === 'string' ? v.trim().slice(0, 80) : '') || null;
+  const u = utm && typeof utm === 'object' ? utm : {};
+  const body = { utm_source: clean(u.utm_source), utm_medium: clean(u.utm_medium), utm_campaign: clean(u.utm_campaign), utm_content: clean(u.utm_content), referral: clean(referral) };
+  if (!Object.values(body).some(Boolean)) return;
+  try {
+    await sbRequest(env, { path: `/rest/v1/bookings?id=eq.${bookingId}`, method: 'PATCH', body });
+  } catch (err) {
+    console.error('setBookingSource failed (columns missing?):', err);
+  }
+}
+
 export async function confirmBooking(env, bookingId) {
   const rows = await sbRequest(env, {
     path: `/rest/v1/bookings?id=eq.${bookingId}&select=id,booking_date,start_min,end_min`,
