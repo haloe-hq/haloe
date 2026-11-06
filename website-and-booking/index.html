@@ -33,7 +33,7 @@
   "url": "https://haloe.health/",
   "logo": "https://haloe.health/favicon.svg",
   "image": "https://haloe.health/images/og-image.jpg",
-  "areaServed": "Greater Manchester",
+  "areaServed": ["Manchester", "Oldham", "Salford", "Rochdale", "Stockport", "Ashton-under-Lyne", "Bury", "Bolton"],
   "location": {
     "@type": "Place",
     "name": "Milton Hall (Remedy Lounge) — Clinic Day, Tuesdays",
@@ -56,14 +56,14 @@
     "@type": "OfferCatalog",
     "name": "haloe sessions",
     "itemListElement": [
-      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Hijama (wet cupping)", "url": "https://haloe.health/hijama-manchester" } },
-      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Dry cupping", "url": "https://haloe.health/cupping-manchester" } },
-      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Massage", "url": "https://haloe.health/massage-manchester" } },
-      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Life coaching", "url": "https://haloe.health/life-coaching-manchester" } }
+      { "@type": "AggregateOffer", "priceCurrency": "GBP", "lowPrice": "70", "highPrice": "150", "offerCount": "5", "itemOffered": { "@type": "Service", "name": "Hijama (wet cupping)", "url": "https://haloe.health/hijama-manchester", "provider": { "@id": "https://haloe.health/#business" }, "areaServed": "Greater Manchester" } },
+      { "@type": "AggregateOffer", "priceCurrency": "GBP", "lowPrice": "50", "highPrice": "115", "offerCount": "7", "itemOffered": { "@type": "Service", "name": "Dry cupping", "url": "https://haloe.health/cupping-manchester", "provider": { "@id": "https://haloe.health/#business" }, "areaServed": "Greater Manchester" } },
+      { "@type": "AggregateOffer", "priceCurrency": "GBP", "lowPrice": "40", "highPrice": "90", "offerCount": "7", "itemOffered": { "@type": "Service", "name": "Massage", "url": "https://haloe.health/massage-manchester", "provider": { "@id": "https://haloe.health/#business" }, "areaServed": "Greater Manchester" } },
+      { "@type": "AggregateOffer", "priceCurrency": "GBP", "lowPrice": "50", "highPrice": "250", "offerCount": "2", "itemOffered": { "@type": "Service", "name": "Life coaching", "url": "https://haloe.health/life-coaching-manchester", "provider": { "@id": "https://haloe.health/#business" }, "areaServed": "Greater Manchester" } }
     ]
   },
   "openingHoursSpecification": [
-    { "@type": "OpeningHoursSpecification", "dayOfWeek": "Tuesday", "opens": "09:00", "closes": "19:00", "description": "Clinic day at Milton Hall, Deansgate" },
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": "Tuesday", "opens": "09:00", "closes": "21:00", "description": "Clinic day at Milton Hall, Deansgate" },
     { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Wednesday","Thursday","Friday","Saturday"], "opens": "10:00", "closes": "20:00", "description": "Home visits across Greater Manchester" }
   ],
   "knowsAbout": ["Hijama", "Cupping", "Wellness", "Relaxation massage", "Life coaching"],
